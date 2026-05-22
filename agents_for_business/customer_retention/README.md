@@ -21,10 +21,10 @@ Machine Learning models (churn prediction)
 LLMs / OpenAI APIs
 Data-driven agent architecture
 
-##How to run
-#1. Run the machine learning predictions
+## How to run
+## 1. Run the machine learning predictions
 python3 churn_prediction.py
 
-#2. Run Agent
+## 2. Run Agent
 export OPENAI_API_KEY="sk-..."
 python3 churn_agent.py
