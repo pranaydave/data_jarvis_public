@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Subagent Tools · DataJarvis.AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cyan:#00f0ff; --cyan-dim:#00b8c4;
+    --magenta:#ff2d8a; --purple:#a855f7; --green:#10e8a0;
+    --bg-0:#03030f; --bg-1:#0a0a24;
+    --glass-edge:rgba(0,240,255,0.25);
+    --text:#e8edff; --text-dim:#8a92b8;
+    --font-display:'Orbitron',sans-serif;
+    --font-body:'Rajdhani',sans-serif;
+    --font-mono:'JetBrains Mono',monospace;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html,body { height:100%; background:var(--bg-0); color:var(--text); font-family:var(--font-body); overflow:hidden; -webkit-font-smoothing:antialiased; }
+  body {
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 20%,rgba(0,240,255,0.13),transparent 60%),
+      radial-gradient(ellipse 70% 60% at 80% 80%,rgba(255,45,138,0.13),transparent 60%),
+      radial-gradient(ellipse 60% 50% at 50% 50%,rgba(168,85,247,0.09),transparent 70%),
+      linear-gradient(180deg,var(--bg-0) 0%,var(--bg-1) 100%);
+  }
+  .bg-grid { position:fixed; inset:0; pointer-events:none; background-image:linear-gradient(rgba(0,240,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(0,240,255,.05) 1px,transparent 1px); background-size:50px 50px; mask-image:radial-gradient(ellipse 100% 80% at 50% 50%,#000 30%,transparent 80%); }
+  .scanlines { position:fixed; inset:0; pointer-events:none; background:repeating-linear-gradient(0deg,rgba(0,240,255,.018) 0px,rgba(0,240,255,.018) 1px,transparent 1px,transparent 4px); mix-blend-mode:overlay; }
+
+  .stage { position:relative; z-index:2; height:100%; padding:16px 24px 16px; display:flex; flex-direction:column; align-items:center; }
+
+  /* header */
+  header { text-align:center; margin-bottom:12px; }
+  .brand-strip { display:inline-flex; align-items:center; gap:10px; padding:4px 14px; border:1px solid var(--glass-edge); border-radius:40px; background:rgba(0,240,255,.04); font-family:var(--font-mono); font-size:10px; letter-spacing:3px; color:var(--cyan); text-transform:uppercase; margin-bottom:8px; }
+  .brand-strip::before,.brand-strip::after { content:''; width:5px; height:5px; background:var(--cyan); border-radius:50%; box-shadow:0 0 6px var(--cyan); animation:pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:.4;transform:scale(.8)} 50%{opacity:1;transform:scale(1.1)} }
+  h1 { font-family:var(--font-display); font-weight:900; font-size:clamp(15px,2vw,22px); letter-spacing:2px; text-transform:uppercase; background:linear-gradient(135deg,#fff 0%,var(--cyan) 45%,var(--magenta) 95%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; filter:drop-shadow(0 0 12px rgba(0,240,255,.3)); }
+
+  /* glass panel */
+  .glass-panel { position:relative; width:100%; flex:1; padding:22px 28px 18px; border-radius:20px; background:linear-gradient(135deg,rgba(20,22,56,.5) 0%,rgba(10,10,36,.45) 50%,rgba(30,15,50,.4) 100%); backdrop-filter:blur(18px) saturate(140%); border:1px solid rgba(0,240,255,.15); box-shadow:0 0 0 1px rgba(255,255,255,.04) inset,0 1px 0 rgba(255,255,255,.08) inset,0 20px 60px rgba(0,0,0,.5),0 0 80px rgba(0,240,255,.07); display:flex; flex-direction:column; overflow:hidden; }
+  .glass-panel::before { content:''; position:absolute; top:0; left:12%; right:12%; height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent); }
+  .glass-panel::after { content:''; position:absolute; inset:-1px; border-radius:20px; padding:1px; background:linear-gradient(135deg,rgba(0,240,255,.5) 0%,transparent 30%,transparent 70%,rgba(255,45,138,.5) 100%); -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0); -webkit-mask-composite:xor; mask-composite:exclude; pointer-events:none; }
+  .corner { position:absolute; width:22px; height:22px; pointer-events:none; }
+  .corner.tl { top:10px; left:10px; border-top:2px solid var(--cyan); border-left:2px solid var(--cyan); }
+  .corner.tr { top:10px; right:10px; border-top:2px solid var(--magenta); border-right:2px solid var(--magenta); }
+  .corner.bl { bottom:10px; left:10px; border-bottom:2px solid var(--magenta); border-left:2px solid var(--magenta); }
+  .corner.br { bottom:10px; right:10px; border-bottom:2px solid var(--cyan); border-right:2px solid var(--cyan); }
+  .hud-label { position:absolute; top:12px; left:16px; font-family:var(--font-mono); font-size:9px; letter-spacing:2px; color:var(--magenta); text-transform:uppercase; }
+  .hud-dot-wrap { position:absolute; top:12px; right:16px; display:flex; align-items:center; gap:6px; font-family:var(--font-mono); font-size:9px; letter-spacing:2px; color:var(--cyan-dim); text-transform:uppercase; }
+  .hud-dot { width:6px; height:6px; background:var(--cyan); border-radius:50%; box-shadow:0 0 5px var(--cyan); animation:pulse 1.4s ease-in-out infinite; }
+
+  /* two-column tool layout */
+  .tools-row {
+    display: grid;
+    grid-template-columns: 1fr 48px 1fr;
+    gap: 0;
+    flex: 1;
+    margin-top: 8px;
+    align-items: stretch;
+  }
+
+  /* divider */
+  .divider {
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  .divider::before {
+    content: '';
+    position: absolute;
+    top: 5%; bottom: 5%;
+    left: 50%; transform: translateX(-50%);
+    width: 1px;
+    background: linear-gradient(to bottom,transparent,rgba(168,85,247,.5),rgba(0,240,255,.5),transparent);
+  }
+  .vs-badge {
+    font-family: var(--font-display); font-size: 11px; font-weight: 800;
+    color: var(--magenta); z-index: 1;
+    background: rgba(10,12,34,.95);
+    border: 1px solid rgba(255,45,138,.4);
+    border-radius: 20px; padding: 4px 8px;
+    box-shadow: 0 0 14px rgba(255,45,138,.25);
+  }
+
+  /* tool panel */
+  .tool-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 0 4px;
+  }
+
+  /* tool header */
+  .tool-header {
+    padding: 12px 16px 10px;
+    border-radius: 14px;
+    border: 1px solid;
+    background: linear-gradient(160deg,rgba(15,18,50,.9) 0%,rgba(10,12,34,.98) 100%);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .tool-header::after { content:''; position:absolute; top:0; left:15%; right:15%; height:1px; }
+  .left-panel .tool-header { border-color:rgba(168,85,247,.4); box-shadow:0 0 20px rgba(168,85,247,.15); }
+  .left-panel .tool-header::after { background:linear-gradient(90deg,transparent,var(--purple),transparent); }
+  .right-panel .tool-header { border-color:rgba(0,240,255,.4); box-shadow:0 0 20px rgba(0,240,255,.15); }
+  .right-panel .tool-header::after { background:linear-gradient(90deg,transparent,var(--cyan),transparent); }
+
+  .th-tag { font-family:var(--font-mono); font-size:9px; letter-spacing:2.5px; text-transform:uppercase; margin-bottom:5px; display:flex; align-items:center; justify-content:center; gap:6px; }
+  .th-tag::before { content:''; width:5px; height:5px; border-radius:50%; }
+  .left-panel .th-tag { color:var(--purple); }
+  .left-panel .th-tag::before { background:var(--purple); box-shadow:0 0 5px var(--purple); animation:pulse 1.2s ease-in-out infinite; }
+  .right-panel .th-tag { color:var(--cyan); }
+  .right-panel .th-tag::before { background:var(--cyan); box-shadow:0 0 5px var(--cyan); animation:pulse 1.2s ease-in-out infinite; }
+
+  .th-icon { display:flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:10px; margin:0 auto 7px; }
+  .left-panel .th-icon { background:linear-gradient(135deg,rgba(168,85,247,.2),rgba(255,45,138,.08)); border:1px solid rgba(168,85,247,.4); }
+  .left-panel .th-icon svg { stroke:var(--purple); }
+  .right-panel .th-icon { background:linear-gradient(135deg,rgba(0,240,255,.18),rgba(168,85,247,.08)); border:1px solid rgba(0,240,255,.35); }
+  .right-panel .th-icon svg { stroke:var(--cyan); }
+  .th-icon svg { width:22px; height:22px; fill:none; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+  .th-name { font-family:var(--font-display); font-size:14px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#fff; margin-bottom:2px; }
+  .th-desc { font-family:var(--font-body); font-size:12px; color:var(--text-dim); letter-spacing:.5px; }
+
+  /* flow steps */
+  .flow-steps { display:flex; flex-direction:column; gap:5px; }
+
+  .flow-step {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: linear-gradient(160deg,rgba(12,14,40,.9) 0%,rgba(8,10,28,.95) 100%);
+    border: 1px solid rgba(0,240,255,.12);
+    transition: transform .25s ease, border-color .25s ease;
+    cursor: default;
+  }
+  .flow-step:hover { transform:translateX(3px); border-color:rgba(0,240,255,.3); }
+  .left-panel .flow-step:hover { border-color:rgba(168,85,247,.4); transform:translateX(3px); }
+
+  .step-num {
+    min-width:22px; height:22px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-display); font-size:10px; font-weight:700;
+    flex-shrink:0;
+  }
+  .left-panel .step-num { background:rgba(168,85,247,.2); border:1px solid rgba(168,85,247,.5); color:var(--purple); }
+  .right-panel .step-num { background:rgba(0,240,255,.15); border:1px solid rgba(0,240,255,.4); color:var(--cyan); }
+
+  .step-info { flex:1; min-width:0; }
+  .step-title { font-family:var(--font-body); font-size:13px; font-weight:600; letter-spacing:.5px; color:#fff; }
+  .step-detail { font-family:var(--font-mono); font-size:9px; color:var(--text-dim); letter-spacing:.5px; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+  .step-badge {
+    font-family:var(--font-mono); font-size:8px; letter-spacing:1px;
+    padding:2px 7px; border-radius:8px; flex-shrink:0; text-transform:uppercase;
+  }
+  .left-panel .step-badge { background:rgba(168,85,247,.12); border:1px solid rgba(168,85,247,.3); color:var(--purple); }
+  .right-panel .step-badge { background:rgba(0,240,255,.1); border:1px solid rgba(0,240,255,.28); color:var(--cyan); }
+
+  /* mini connector between steps */
+  .step-conn {
+    width:2px; height:5px;
+    margin: 0 auto; margin-left: 20px;
+    background: linear-gradient(to bottom,rgba(168,85,247,.5),rgba(0,240,255,.3));
+  }
+  .right-panel .step-conn { background:linear-gradient(to bottom,rgba(0,240,255,.6),rgba(168,85,247,.3)); }
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="scanlines"></div>
+<div class="stage">
+  <header>
+    <div class="brand-strip">DataJarvis.AI · Subagent Tools</div>
+    <h1>Subagent Tool Architecture</h1>
+  </header>
+
+  <div class="glass-panel">
+    <span class="corner tl"></span><span class="corner tr"></span>
+    <span class="corner bl"></span><span class="corner br"></span>
+    <div class="hud-label">// TOOL.DESIGN</div>
+    <div class="hud-dot-wrap"><span class="hud-dot"></span> READY</div>
+
+    <div class="tools-row">
+
+      <!-- LEFT: Contract QA (RAG) -->
+      <div class="tool-panel left-panel">
+
+        <div class="tool-header">
+          <div class="th-tag">Tool 1 · Contract</div>
+          <div class="th-icon">
+            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          </div>
+          <div class="th-name">Contract QA</div>
+          <div class="th-desc">RAG · FAISS · GPT-4o-mini</div>
+        </div>
+
+        <div class="flow-steps">
+          <div class="flow-step">
+            <div class="step-num">1</div>
+            <div class="step-info">
+              <div class="step-title">Receive Question</div>
+              <div class="step-detail">contract_qa(question: str)</div>
+            </div>
+            <div class="step-badge">input</div>
+          </div>
+          <div class="step-conn"></div>
+          <div class="flow-step">
+            <div class="step-num">2</div>
+            <div class="step-info">
+              <div class="step-title">FAISS Retrieval</div>
+              <div class="step-detail">retriever.invoke(question) k=4</div>
+            </div>
+            <div class="step-badge">RAG</div>
+          </div>
+          <div class="step-conn"></div>
+          <div class="flow-step">
+            <div class="step-num">3</div>
+            <div class="step-info">
+              <div class="step-title">Build Context</div>
+              <div class="step-detail">top-4 PDF chunks joined</div>
+            </div>
+            <div class="step-badge">context</div>
+          </div>
+          <div class="step-conn"></div>
+          <div class="flow-step">
+            <div class="step-num">4</div>
+            <div class="step-info">
+              <div class="step-title">LLM Prompt</div>
+              <div class="step-detail">system + context + question</div>
+            </div>
+            <div class="step-badge">GPT-4o</div>
+          </div>
+          <div class="step-conn"></div>
+          <div class="flow-step">
+            <div class="step-num">5</div>
+            <div class="step-info">
+              <div class="step-title">Return Answer</div>
+              <div class="step-detail">grounded in policy text</div>
+            </div>
+            <div class="step-badge">output</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DIVIDER -->
+      <div class="divider"><span class="vs-badge">VS</span></div>
+
+      <!-- RIGHT: Billing QA (Pandas) -->
+      <div class="tool-panel right-panel">
+
+        <div class="tool-header">
+          <div class="th-tag">Tool 2 · Billing</div>
+          <div class="th-icon">
+            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
+          </div>
+          <div class="th-name">Billing QA</div>
+          <div class="th-desc">Pandas · CSV · GPT-4o-mini</div>
+        </div>
+
+        <div class="flow-steps">
+          <div class="flow-step">
+            <div class="step-num">1</div>
+            <div class="step-info">
+              <div class="step-title">Receive Question</div>
+              <div class="step-detail">billing_qa(question: str)</div>
+            </div>
+            <div class="step-badge">input</div>
+          </div>
+          <div class="step-conn"></div>
+          <div class="flow-step">
+            <div class="step-num">2</div>
+            <div class="step-info">
+              <div class="step-title">Pandas Lookup</div>
+              <div class="step-detail">_pandas_lookup() heuristic</div>
+            </div>
+            <div class="step-badge">pandas</div>
+          </div>
+          <div class="step-conn"></div>
+          <div class="flow-step">
+            <div class="step-num">3</div>
+            <div class="step-info">
+              <div class="step-title">Build Summary</div>
+              <div class="step-detail">schema + stats + rows</div>
+            </div>
+            <div class="step-badge">context</div>
+          </div>
+          <div class="step-conn"></div>
+          <div class="flow-step">
+            <div class="step-num">4</div>
+            <div class="step-info">
+              <div class="step-title">LLM Prompt</div>
+              <div class="step-detail">data analyst role + context</div>
+            </div>
+            <div class="step-badge">GPT-4o</div>
+          </div>
+          <div class="step-conn"></div>
+          <div class="flow-step">
+            <div class="step-num">5</div>
+            <div class="step-info">
+              <div class="step-title">Return Answer</div>
+              <div class="step-detail">grounded in billing data</div>
+            </div>
+            <div class="step-badge">output</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</body>
+</html>

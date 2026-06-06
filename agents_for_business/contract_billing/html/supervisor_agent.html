@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Supervisor Multi-Agent · DataJarvis.AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cyan: #00f0ff; --cyan-dim: #00b8c4;
+    --magenta: #ff2d8a; --magenta-dim: #c2196a;
+    --purple: #a855f7; --green: #10e8a0;
+    --bg-0: #03030f; --bg-1: #0a0a24; --bg-2: #12122e;
+    --glass-edge: rgba(0,240,255,0.25);
+    --text: #e8edff; --text-dim: #8a92b8;
+    --font-display: 'Orbitron', sans-serif;
+    --font-body: 'Rajdhani', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%; background: var(--bg-0);
+    color: var(--text); font-family: var(--font-body);
+    overflow: hidden; -webkit-font-smoothing: antialiased;
+  }
+  body {
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 20%, rgba(0,240,255,0.15), transparent 60%),
+      radial-gradient(ellipse 70% 60% at 80% 80%, rgba(255,45,138,0.15), transparent 60%),
+      radial-gradient(ellipse 60% 50% at 50% 50%, rgba(168,85,247,0.10), transparent 70%),
+      linear-gradient(180deg, var(--bg-0) 0%, var(--bg-1) 100%);
+  }
+  .bg-grid {
+    position: fixed; inset: 0; pointer-events: none;
+    background-image:
+      linear-gradient(rgba(0,240,255,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,240,255,0.05) 1px, transparent 1px);
+    background-size: 50px 50px;
+    mask-image: radial-gradient(ellipse 100% 80% at 50% 50%, #000 30%, transparent 80%);
+  }
+  .scanlines {
+    position: fixed; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(0deg,rgba(0,240,255,0.018) 0px,rgba(0,240,255,0.018) 1px,transparent 1px,transparent 4px);
+    mix-blend-mode: overlay;
+  }
+  .stage {
+    position: relative; z-index: 2;
+    height: 100%; padding: 18px 28px 18px;
+    display: flex; flex-direction: column; align-items: center;
+  }
+
+  /* ── HEADER ── */
+  header { text-align: center; margin-bottom: 14px; }
+  .brand-strip {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 4px 14px; border: 1px solid var(--glass-edge); border-radius: 40px;
+    background: rgba(0,240,255,0.04);
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 3px;
+    color: var(--cyan); text-transform: uppercase; margin-bottom: 10px;
+  }
+  .brand-strip::before, .brand-strip::after {
+    content: ''; width: 5px; height: 5px; background: var(--cyan); border-radius: 50%;
+    box-shadow: 0 0 6px var(--cyan); animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:.4;transform:scale(.8)} 50%{opacity:1;transform:scale(1.1)} }
+  h1 {
+    font-family: var(--font-display); font-weight: 900;
+    font-size: clamp(16px, 2.2vw, 24px); letter-spacing: 2px;
+    text-transform: uppercase;
+    background: linear-gradient(135deg, #fff 0%, var(--cyan) 45%, var(--magenta) 95%);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 14px rgba(0,240,255,0.3));
+  }
+  h1 .accent {
+    background: linear-gradient(135deg, var(--magenta) 0%, var(--purple) 100%);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  }
+
+  /* ── GLASS PANEL ── */
+  .glass-panel {
+    position: relative; width: 100%; flex: 1;
+    padding: 22px 32px 22px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, rgba(20,22,56,.5) 0%, rgba(10,10,36,.45) 50%, rgba(30,15,50,.4) 100%);
+    backdrop-filter: blur(18px) saturate(140%);
+    border: 1px solid rgba(0,240,255,0.15);
+    box-shadow: 0 0 0 1px rgba(255,255,255,.04) inset, 0 1px 0 rgba(255,255,255,.08) inset,
+                0 20px 60px rgba(0,0,0,.5), 0 0 80px rgba(0,240,255,.07);
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+  .glass-panel::before {
+    content:''; position:absolute; top:0; left:12%; right:12%; height:1px;
+    background: linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);
+  }
+  .glass-panel::after {
+    content:''; position:absolute; inset:-1px; border-radius:20px; padding:1px;
+    background: linear-gradient(135deg,rgba(0,240,255,.5) 0%,transparent 30%,transparent 70%,rgba(255,45,138,.5) 100%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none;
+  }
+  .corner { position:absolute; width:22px; height:22px; pointer-events:none; }
+  .corner.tl { top:10px; left:10px; border-top:2px solid var(--cyan); border-left:2px solid var(--cyan); }
+  .corner.tr { top:10px; right:10px; border-top:2px solid var(--magenta); border-right:2px solid var(--magenta); }
+  .corner.bl { bottom:10px; left:10px; border-bottom:2px solid var(--magenta); border-left:2px solid var(--magenta); }
+  .corner.br { bottom:10px; right:10px; border-bottom:2px solid var(--cyan); border-right:2px solid var(--cyan); }
+  .hud-label { position:absolute; top:12px; left:16px; font-family:var(--font-mono); font-size:9px; letter-spacing:2px; color:var(--magenta); text-transform:uppercase; }
+  .hud-dot-wrap { position:absolute; top:12px; right:16px; display:flex; align-items:center; gap:6px; font-family:var(--font-mono); font-size:9px; letter-spacing:2px; color:var(--cyan-dim); text-transform:uppercase; }
+  .hud-dot { width:6px; height:6px; background:var(--cyan); border-radius:50%; box-shadow:0 0 5px var(--cyan); animation:pulse 1.4s ease-in-out infinite; }
+
+  /* ── ARCHITECTURE TREE ── */
+  .arch { display:flex; flex-direction:column; align-items:center; }
+
+  /* node card */
+  .anode {
+    position: relative;
+    border-radius: 14px;
+    background: linear-gradient(160deg, rgba(15,18,50,.88) 0%, rgba(10,12,34,.96) 100%);
+    border: 1px solid rgba(0,240,255,.22);
+    padding: 10px 20px 10px;
+    text-align: center;
+    overflow: hidden;
+    transition: transform .35s ease, box-shadow .35s ease;
+  }
+  .anode::after {
+    content:''; position:absolute; top:0; left:20%; right:20%; height:1px;
+    background: linear-gradient(90deg,transparent,rgba(0,240,255,.6),transparent);
+  }
+  .anode:hover { transform: translateY(-2px); box-shadow: 0 0 24px rgba(0,240,255,.2); }
+
+  .anode.user   { width:220px; border-color:rgba(168,85,247,.35); }
+  .anode.user::after { background:linear-gradient(90deg,transparent,rgba(168,85,247,.7),transparent); }
+  .anode.router { width:320px; border-color:var(--magenta); box-shadow:0 0 30px rgba(255,45,138,.25), 0 0 60px rgba(255,45,138,.1); }
+  .anode.router::after { background:linear-gradient(90deg,transparent,var(--magenta),transparent); }
+  .anode.contract { width:220px; border-color:rgba(168,85,247,.4); }
+  .anode.contract::after { background:linear-gradient(90deg,transparent,rgba(168,85,247,.7),transparent); }
+  .anode.billing  { width:220px; border-color:rgba(0,240,255,.4); }
+
+  .atag {
+    font-family: var(--font-mono); font-size: 9px; letter-spacing: 2.5px;
+    text-transform: uppercase; margin-bottom: 5px;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .atag::before { content:''; width:5px; height:5px; border-radius:50%; }
+  .user    .atag { color:var(--purple); }
+  .user    .atag::before { background:var(--purple); box-shadow:0 0 6px var(--purple); }
+  .router  .atag { color:var(--magenta); }
+  .router  .atag::before { background:var(--magenta); box-shadow:0 0 6px var(--magenta); animation:pulse 1s ease-in-out infinite; }
+  .contract .atag { color:var(--purple); }
+  .contract .atag::before { background:var(--purple); box-shadow:0 0 6px var(--purple); }
+  .billing  .atag { color:var(--cyan); }
+  .billing  .atag::before { background:var(--cyan); box-shadow:0 0 6px var(--cyan); }
+
+  .aicon {
+    display: flex; align-items: center; justify-content: center;
+    width: 38px; height: 38px; margin: 0 auto 7px;
+    border-radius: 10px;
+    border: 1px solid rgba(0,240,255,.25);
+    background: linear-gradient(135deg,rgba(0,240,255,.12),rgba(168,85,247,.08));
+  }
+  .aicon svg { width:20px; height:20px; stroke-width:1.7; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+  .user     .aicon { border-color:rgba(168,85,247,.35); background:linear-gradient(135deg,rgba(168,85,247,.15),rgba(255,45,138,.08)); }
+  .user     .aicon svg { stroke:var(--purple); }
+  .router   .aicon { border-color:var(--magenta); background:linear-gradient(135deg,rgba(255,45,138,.25),rgba(168,85,247,.15)); box-shadow:0 0 18px rgba(255,45,138,.3); }
+  .router   .aicon { width:48px; height:48px; border-radius:12px; }
+  .router   .aicon svg { width:26px; height:26px; stroke:var(--magenta); filter:drop-shadow(0 0 6px var(--magenta)); }
+  .contract .aicon svg { stroke:var(--purple); }
+  .billing  .aicon svg { stroke:var(--cyan); }
+
+  .atitle {
+    font-family: var(--font-display); font-size: 13px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase; color:#fff; margin-bottom: 3px;
+  }
+  .router .atitle { font-size:16px; letter-spacing:2px; }
+  .adesc {
+    font-family: var(--font-body); font-size: 12px; color:var(--text-dim); letter-spacing:.5px;
+  }
+
+  /* vertical connectors */
+  .v-conn {
+    width: 2px; height: 28px; position: relative;
+    background: linear-gradient(to bottom, rgba(0,240,255,.8), rgba(0,240,255,.2));
+  }
+  .v-conn::after {
+    content:''; position:absolute; bottom:-5px; left:50%; transform:translateX(-50%);
+    border-left:5px solid transparent; border-right:5px solid transparent; border-top:6px solid var(--cyan);
+    filter: drop-shadow(0 0 4px var(--cyan));
+  }
+  .v-conn.purple { background:linear-gradient(to bottom, rgba(168,85,247,.8), rgba(168,85,247,.2)); }
+  .v-conn.purple::after { border-top-color:var(--purple); filter:drop-shadow(0 0 4px var(--purple)); }
+  .v-conn.magenta { background:linear-gradient(to bottom, rgba(255,45,138,.9), rgba(255,45,138,.2)); }
+  .v-conn.magenta::after { border-top-color:var(--magenta); filter:drop-shadow(0 0 4px var(--magenta)); }
+  .v-conn.short { height:18px; }
+
+  /* fork section */
+  .fork-wrap {
+    display: flex;
+    gap: 100px;
+    position: relative;
+  }
+  /* Horizontal connecting line from center of left branch to center of right branch */
+  /* Each branch is 220px wide, gap is 100px → total 540px. Centers at 110px and 430px */
+  .fork-wrap::before {
+    content:'';
+    position: absolute;
+    top: 0; left: 110px; right: 110px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--purple), var(--magenta), var(--cyan));
+    box-shadow: 0 0 8px rgba(168,85,247,.5), 0 0 16px rgba(0,240,255,.3);
+    animation: beamFlow 2s linear infinite;
+    background-size: 200% 100%;
+  }
+  @keyframes beamFlow {
+    0%  { background-position: 0% 0%; }
+    100%{ background-position: 200% 0%; }
+  }
+
+  .branch-col {
+    width: 220px;
+    display: flex; flex-direction: column; align-items: center;
+  }
+
+  /* data source badges */
+  .data-badge {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 18px;
+    border-radius: 30px;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 2px;
+    text-transform: uppercase;
+    border: 1px dashed;
+  }
+  .data-badge svg { width:14px; height:14px; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .data-badge.pdf {
+    border-color: rgba(16,232,160,.5); color:var(--green);
+    background: rgba(16,232,160,.07);
+    box-shadow: 0 0 14px rgba(16,232,160,.15);
+  }
+  .data-badge.pdf svg { stroke:var(--green); }
+  .data-badge.csv {
+    border-color: rgba(0,240,255,.4); color:var(--cyan);
+    background: rgba(0,240,255,.07);
+    box-shadow: 0 0 14px rgba(0,240,255,.15);
+  }
+  .data-badge.csv svg { stroke:var(--cyan); }
+
+  /* route label pill */
+  .route-pill {
+    font-family: var(--font-mono); font-size: 9px; letter-spacing: 2px;
+    text-transform: uppercase; padding: 3px 10px; border-radius: 20px;
+    margin-top: 4px;
+  }
+  .route-pill.insurance { background:rgba(168,85,247,.15); border:1px solid rgba(168,85,247,.4); color:var(--purple); }
+  .route-pill.billing   { background:rgba(0,240,255,.1);   border:1px solid rgba(0,240,255,.35); color:var(--cyan); }
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="scanlines"></div>
+
+<div class="stage">
+  <header>
+    <div class="brand-strip">DataJarvis.AI · Agent Architecture</div>
+    <h1>Supervisor <span class="accent">Multi-Agent</span> System</h1>
+  </header>
+
+  <div class="glass-panel">
+    <span class="corner tl"></span><span class="corner tr"></span>
+    <span class="corner bl"></span><span class="corner br"></span>
+    <div class="hud-label">// ROUTER.AGENT</div>
+    <div class="hud-dot-wrap"><span class="hud-dot"></span> ROUTING</div>
+
+    <div class="arch">
+
+      <!-- User Input -->
+      <div class="anode user">
+        <div class="atag">Input</div>
+        <div class="aicon">
+          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <div class="atitle">User Query</div>
+        <div class="adesc">"What does my policy cover?"</div>
+      </div>
+
+      <div class="v-conn purple"></div>
+
+      <!-- Supervisor Router -->
+      <div class="anode router">
+        <div class="atag">Supervisor</div>
+        <div class="aicon">
+          <svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v1.4A4 4 0 0 0 6 10v.6A3 3 0 0 0 4 13.5a3 3 0 0 0 2 2.8V17a4 4 0 0 0 3 3.9V22h6v-1.1a4 4 0 0 0 3-3.9v-.7a3 3 0 0 0 2-2.8 3 3 0 0 0-2-2.9V10a4 4 0 0 0-3-3.6V5a3 3 0 0 0-3-3z"/><path d="M9 11h6"/><path d="M9 15h6"/></svg>
+        </div>
+        <div class="atitle">Router Agent</div>
+        <div class="adesc">LLM classifies intent → routes to subagent</div>
+      </div>
+
+      <div class="v-conn magenta" style="height:10px; background:none;"></div>
+
+      <!-- Fork -->
+      <div class="fork-wrap">
+
+        <!-- LEFT: Contract QA -->
+        <div class="branch-col">
+          <div class="v-conn purple"></div>
+          <div class="anode contract">
+            <div class="atag">Subagent 1</div>
+            <div class="aicon">
+              <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            </div>
+            <div class="atitle">Contract QA</div>
+            <div class="adesc">RAG over policy PDF</div>
+          </div>
+          <div class="v-conn short" style="background:linear-gradient(to bottom,rgba(16,232,160,.8),rgba(16,232,160,.2));"></div>
+          <div class="v-conn short" style="height:8px; background:none;"></div>
+          <div class="data-badge pdf">
+            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Insurance PDF
+          </div>
+          <div class="route-pill insurance" style="margin-top:6px">contract intent</div>
+        </div>
+
+        <!-- RIGHT: Billing QA -->
+        <div class="branch-col">
+          <div class="v-conn"></div>
+          <div class="anode billing">
+            <div class="atag">Subagent 2</div>
+            <div class="aicon">
+              <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
+            </div>
+            <div class="atitle">Billing QA</div>
+            <div class="adesc">Pandas + LLM over CSV</div>
+          </div>
+          <div class="v-conn short" style="background:linear-gradient(to bottom,rgba(0,240,255,.8),rgba(0,240,255,.2));"></div>
+          <div class="v-conn short" style="height:8px; background:none;"></div>
+          <div class="data-badge csv">
+            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>
+            Billing CSV
+          </div>
+          <div class="route-pill billing" style="margin-top:6px">billing intent</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

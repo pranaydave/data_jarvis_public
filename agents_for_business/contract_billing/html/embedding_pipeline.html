@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Embedding Pipeline · DataJarvis.AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cyan:#00f0ff; --cyan-dim:#00b8c4;
+    --magenta:#ff2d8a; --purple:#a855f7; --green:#10e8a0;
+    --bg-0:#03030f; --bg-1:#0a0a24;
+    --glass-edge:rgba(0,240,255,0.25);
+    --text:#e8edff; --text-dim:#8a92b8;
+    --font-display:'Orbitron',sans-serif;
+    --font-body:'Rajdhani',sans-serif;
+    --font-mono:'JetBrains Mono',monospace;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html,body { height:100%; background:var(--bg-0); color:var(--text); font-family:var(--font-body); overflow:hidden; -webkit-font-smoothing:antialiased; }
+  body {
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 20%, rgba(0,240,255,0.13), transparent 60%),
+      radial-gradient(ellipse 70% 60% at 80% 80%, rgba(255,45,138,0.13), transparent 60%),
+      radial-gradient(ellipse 60% 50% at 50% 50%, rgba(168,85,247,0.09), transparent 70%),
+      linear-gradient(180deg, var(--bg-0) 0%, var(--bg-1) 100%);
+  }
+  .bg-grid {
+    position:fixed; inset:0; pointer-events:none;
+    background-image:linear-gradient(rgba(0,240,255,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(0,240,255,0.05) 1px,transparent 1px);
+    background-size:50px 50px;
+    mask-image:radial-gradient(ellipse 100% 80% at 50% 50%,#000 30%,transparent 80%);
+  }
+  .scanlines { position:fixed; inset:0; pointer-events:none; background:repeating-linear-gradient(0deg,rgba(0,240,255,.018) 0px,rgba(0,240,255,.018) 1px,transparent 1px,transparent 4px); mix-blend-mode:overlay; }
+
+  .stage { position:relative; z-index:2; height:100%; padding:16px 24px; display:flex; flex-direction:column; align-items:center; }
+
+  /* header */
+  header { text-align:center; margin-bottom:12px; }
+  .brand-strip { display:inline-flex; align-items:center; gap:10px; padding:4px 14px; border:1px solid var(--glass-edge); border-radius:40px; background:rgba(0,240,255,0.04); font-family:var(--font-mono); font-size:10px; letter-spacing:3px; color:var(--cyan); text-transform:uppercase; margin-bottom:8px; }
+  .brand-strip::before,.brand-strip::after { content:''; width:5px; height:5px; background:var(--cyan); border-radius:50%; box-shadow:0 0 6px var(--cyan); animation:pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:.4;transform:scale(.8)} 50%{opacity:1;transform:scale(1.1)} }
+  h1 { font-family:var(--font-display); font-weight:900; font-size:clamp(15px,2vw,22px); letter-spacing:2px; text-transform:uppercase; background:linear-gradient(135deg,#fff 0%,var(--cyan) 45%,var(--magenta) 95%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; filter:drop-shadow(0 0 12px rgba(0,240,255,.3)); }
+  h1 .accent { background:linear-gradient(135deg,var(--green) 0%,var(--cyan) 100%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+
+  /* glass panel */
+  .glass-panel {
+    position:relative; width:100%; flex:1;
+    padding:24px 32px;
+    border-radius:20px;
+    background:linear-gradient(135deg,rgba(20,22,56,.5) 0%,rgba(10,10,36,.45) 50%,rgba(30,15,50,.4) 100%);
+    backdrop-filter:blur(18px) saturate(140%);
+    border:1px solid rgba(0,240,255,.15);
+    box-shadow:0 0 0 1px rgba(255,255,255,.04) inset,0 1px 0 rgba(255,255,255,.08) inset,0 20px 60px rgba(0,0,0,.5),0 0 80px rgba(0,240,255,.07);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    overflow:hidden;
+  }
+  .glass-panel::before { content:''; position:absolute; top:0; left:12%; right:12%; height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent); }
+  .glass-panel::after { content:''; position:absolute; inset:-1px; border-radius:20px; padding:1px; background:linear-gradient(135deg,rgba(0,240,255,.5) 0%,transparent 30%,transparent 70%,rgba(255,45,138,.5) 100%); -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0); -webkit-mask-composite:xor; mask-composite:exclude; pointer-events:none; }
+  .corner { position:absolute; width:22px; height:22px; pointer-events:none; }
+  .corner.tl { top:10px; left:10px; border-top:2px solid var(--cyan); border-left:2px solid var(--cyan); }
+  .corner.tr { top:10px; right:10px; border-top:2px solid var(--magenta); border-right:2px solid var(--magenta); }
+  .corner.bl { bottom:10px; left:10px; border-bottom:2px solid var(--magenta); border-left:2px solid var(--magenta); }
+  .corner.br { bottom:10px; right:10px; border-bottom:2px solid var(--cyan); border-right:2px solid var(--cyan); }
+  .hud-label { position:absolute; top:12px; left:16px; font-family:var(--font-mono); font-size:9px; letter-spacing:2px; color:var(--magenta); text-transform:uppercase; }
+  .hud-dot-wrap { position:absolute; top:12px; right:16px; display:flex; align-items:center; gap:6px; font-family:var(--font-mono); font-size:9px; letter-spacing:2px; color:var(--cyan-dim); text-transform:uppercase; }
+  .hud-dot { width:6px; height:6px; background:var(--cyan); border-radius:50%; box-shadow:0 0 5px var(--cyan); animation:pulse 1.4s ease-in-out infinite; }
+
+  /* pipeline */
+  .pipeline {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .pipe-stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    max-width: 150px;
+  }
+
+  .pipe-card {
+    position: relative;
+    width: 100%;
+    padding: 14px 12px 12px;
+    border-radius: 14px;
+    background: linear-gradient(160deg,rgba(15,18,50,.9) 0%,rgba(10,12,34,.98) 100%);
+    border: 1px solid rgba(0,240,255,.2);
+    text-align: center;
+    overflow: hidden;
+    transition: transform .3s ease, box-shadow .3s ease;
+    cursor: default;
+  }
+  .pipe-card::after {
+    content:''; position:absolute; top:0; left:15%; right:15%; height:1px;
+    background:linear-gradient(90deg,transparent,rgba(0,240,255,.6),transparent);
+  }
+  .pipe-card:hover { transform:translateY(-3px); box-shadow:0 6px 20px rgba(0,0,0,.4),0 0 20px rgba(0,240,255,.18); }
+
+  /* stage-specific accent colours */
+  .s1 .pipe-card { border-color:rgba(168,85,247,.4); }
+  .s1 .pipe-card::after { background:linear-gradient(90deg,transparent,rgba(168,85,247,.7),transparent); }
+  .s2 .pipe-card { border-color:rgba(0,240,255,.3); }
+  .s3 .pipe-card { border-color:rgba(255,45,138,.35); }
+  .s3 .pipe-card::after { background:linear-gradient(90deg,transparent,rgba(255,45,138,.6),transparent); }
+  .s4 .pipe-card { border-color:rgba(168,85,247,.35); }
+  .s4 .pipe-card::after { background:linear-gradient(90deg,transparent,rgba(168,85,247,.6),transparent); }
+  .s5 .pipe-card { border-color:rgba(16,232,160,.45); box-shadow:0 0 20px rgba(16,232,160,.15); }
+  .s5 .pipe-card::after { background:linear-gradient(90deg,transparent,rgba(16,232,160,.7),transparent); }
+
+  .pipe-icon {
+    width:38px; height:38px; margin:0 auto 8px;
+    border-radius:10px;
+    background:linear-gradient(135deg,rgba(0,240,255,.12),rgba(168,85,247,.08));
+    border:1px solid rgba(0,240,255,.25);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .pipe-icon svg { width:20px; height:20px; fill:none; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; stroke:var(--cyan); }
+  .s1 .pipe-icon { background:linear-gradient(135deg,rgba(168,85,247,.18),rgba(255,45,138,.08)); border-color:rgba(168,85,247,.4); }
+  .s1 .pipe-icon svg { stroke:var(--purple); }
+  .s3 .pipe-icon { background:linear-gradient(135deg,rgba(255,45,138,.18),rgba(168,85,247,.08)); border-color:rgba(255,45,138,.35); }
+  .s3 .pipe-icon svg { stroke:var(--magenta); }
+  .s4 .pipe-icon { background:linear-gradient(135deg,rgba(168,85,247,.18),rgba(0,240,255,.08)); border-color:rgba(168,85,247,.35); }
+  .s4 .pipe-icon svg { stroke:var(--purple); }
+  .s5 .pipe-icon { background:linear-gradient(135deg,rgba(16,232,160,.18),rgba(0,240,255,.08)); border-color:rgba(16,232,160,.4); box-shadow:0 0 14px rgba(16,232,160,.2); }
+  .s5 .pipe-icon svg { stroke:var(--green); }
+
+  .pipe-title { font-family:var(--font-display); font-size:11px; font-weight:700; letter-spacing:1px; color:#fff; text-transform:uppercase; margin-bottom:2px; }
+  .pipe-sub   { font-family:var(--font-mono); font-size:9px; color:var(--text-dim); letter-spacing:1px; text-transform:uppercase; }
+  .pipe-lib   { font-family:var(--font-mono); font-size:8px; letter-spacing:1px; padding:2px 7px; border-radius:8px; margin-top:5px; display:inline-block; }
+  .s1 .pipe-lib { background:rgba(168,85,247,.15); border:1px solid rgba(168,85,247,.35); color:var(--purple); }
+  .s2 .pipe-lib { background:rgba(0,240,255,.1);   border:1px solid rgba(0,240,255,.3);   color:var(--cyan); }
+  .s3 .pipe-lib { background:rgba(255,45,138,.12); border:1px solid rgba(255,45,138,.35); color:var(--magenta); }
+  .s4 .pipe-lib { background:rgba(168,85,247,.12); border:1px solid rgba(168,85,247,.3);  color:var(--purple); }
+  .s5 .pipe-lib { background:rgba(16,232,160,.1);  border:1px solid rgba(16,232,160,.35); color:var(--green); }
+
+  .pipe-stat  { font-family:var(--font-mono); font-size:9px; color:var(--cyan); margin-top:3px; opacity:.8; }
+
+  /* arrow connector */
+  .pipe-arrow {
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; width: 36px; margin: 0 2px;
+    position: relative;
+  }
+  .pipe-arrow::before {
+    content:'';
+    width: 100%; height: 2px;
+    background: linear-gradient(90deg, rgba(0,240,255,.6), rgba(168,85,247,.6));
+    box-shadow: 0 0 6px rgba(0,240,255,.4);
+    animation: arrowFlow 1.4s linear infinite;
+    background-size: 200% 100%;
+  }
+  @keyframes arrowFlow { 0%{background-position:0%} 100%{background-position:200%} }
+  .pipe-arrow::after {
+    content:'';
+    position: absolute; right: -3px; top: 50%; transform: translateY(-50%);
+    border-top: 5px solid transparent; border-bottom: 5px solid transparent;
+    border-left: 7px solid var(--cyan);
+    filter: drop-shadow(0 0 4px var(--cyan));
+  }
+
+  /* bottom label bar */
+  .label-bar {
+    margin-top: 16px;
+    display: flex; gap: 24px; justify-content: center; flex-wrap: wrap;
+  }
+  .lbl { font-family:var(--font-mono); font-size:10px; letter-spacing:2px; color:var(--text-dim); text-transform:uppercase; display:flex; align-items:center; gap:6px; }
+  .lbl-dot { width:6px; height:6px; border-radius:50%; }
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="scanlines"></div>
+<div class="stage">
+  <header>
+    <div class="brand-strip">DataJarvis.AI · RAG Pipeline</div>
+    <h1>PDF <span class="accent">Embedding</span> Pipeline</h1>
+  </header>
+
+  <div class="glass-panel">
+    <span class="corner tl"></span><span class="corner tr"></span>
+    <span class="corner bl"></span><span class="corner br"></span>
+    <div class="hud-label">// EMBED.PREP</div>
+    <div class="hud-dot-wrap"><span class="hud-dot"></span> INDEXING</div>
+
+    <div class="pipeline">
+
+      <!-- Stage 1: PDF Document -->
+      <div class="pipe-stage s1">
+        <div class="pipe-card">
+          <div class="pipe-icon">
+            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          </div>
+          <div class="pipe-title">PDF Doc</div>
+          <div class="pipe-sub">Source</div>
+          <div class="pipe-lib">reportlab</div>
+          <div class="pipe-stat">14 sections</div>
+        </div>
+      </div>
+
+      <div class="pipe-arrow"></div>
+
+      <!-- Stage 2: PyPDF Loader -->
+      <div class="pipe-stage s2">
+        <div class="pipe-card">
+          <div class="pipe-icon">
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </div>
+          <div class="pipe-title">Loader</div>
+          <div class="pipe-sub">Parse pages</div>
+          <div class="pipe-lib">PyPDFLoader</div>
+          <div class="pipe-stat">~4 pages</div>
+        </div>
+      </div>
+
+      <div class="pipe-arrow"></div>
+
+      <!-- Stage 3: Text Splitter -->
+      <div class="pipe-stage s3">
+        <div class="pipe-card">
+          <div class="pipe-icon">
+            <svg viewBox="0 0 24 24"><line x1="2" y1="12" x2="22" y2="12"/><path d="M5 12V7a7 7 0 0 1 14 0v5"/><path d="M5 12v5a7 7 0 0 0 14 0v-5"/></svg>
+          </div>
+          <div class="pipe-title">Splitter</div>
+          <div class="pipe-sub">Chunk text</div>
+          <div class="pipe-lib">RecursiveCharText</div>
+          <div class="pipe-stat">600 / 80 overlap</div>
+        </div>
+      </div>
+
+      <div class="pipe-arrow"></div>
+
+      <!-- Stage 4: Embeddings -->
+      <div class="pipe-stage s4">
+        <div class="pipe-card">
+          <div class="pipe-icon">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+          </div>
+          <div class="pipe-title">Embeddings</div>
+          <div class="pipe-sub">Vectorise</div>
+          <div class="pipe-lib">text-embed-3-small</div>
+          <div class="pipe-stat">1536 dims</div>
+        </div>
+      </div>
+
+      <div class="pipe-arrow"></div>
+
+      <!-- Stage 5: FAISS Index -->
+      <div class="pipe-stage s5">
+        <div class="pipe-card">
+          <div class="pipe-icon">
+            <svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+          </div>
+          <div class="pipe-title">FAISS Index</div>
+          <div class="pipe-sub">Vector store</div>
+          <div class="pipe-lib">faiss-cpu</div>
+          <div class="pipe-stat">Persisted ✓</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="label-bar">
+      <div class="lbl"><span class="lbl-dot" style="background:var(--purple);box-shadow:0 0 5px var(--purple)"></span> Input</div>
+      <div class="lbl"><span class="lbl-dot" style="background:var(--magenta);box-shadow:0 0 5px var(--magenta)"></span> Transform</div>
+      <div class="lbl"><span class="lbl-dot" style="background:var(--cyan);box-shadow:0 0 5px var(--cyan)"></span> Vectorise</div>
+      <div class="lbl"><span class="lbl-dot" style="background:var(--green);box-shadow:0 0 5px var(--green)"></span> Persist</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
