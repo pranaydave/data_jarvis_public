@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ML Agent Pipeline · Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cyan: #00f0ff; --cyan-dim: #00b8c4;
+    --magenta: #ff2d8a; --magenta-dim: #c2196a;
+    --purple: #a855f7; --green: #10e8a0;
+    --amber: #fbbf24; --orange: #fb923c; --red: #f87171;
+    --bg-0: #03030f; --bg-1: #0a0a24; --bg-2: #12122e;
+    --glass-edge: rgba(0,240,255,0.22);
+    --text: #e8edff; --text-dim: #8a92b8;
+    --font-display: 'Orbitron', sans-serif;
+    --font-body: 'Rajdhani', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { min-height: 100%; }
+  body {
+    min-height: 100%; background: var(--bg-0);
+    color: var(--text); font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    padding: 18px 22px 30px;
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 10%, rgba(0,240,255,0.13), transparent 60%),
+      radial-gradient(ellipse 70% 60% at 80% 80%, rgba(255,45,138,0.13), transparent 60%),
+      radial-gradient(ellipse 60% 50% at 50% 50%, rgba(168,85,247,0.08), transparent 70%),
+      linear-gradient(180deg, var(--bg-0) 0%, var(--bg-1) 100%);
+  }
+  .bg-grid {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image:
+      linear-gradient(rgba(0,240,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,240,255,0.04) 1px, transparent 1px);
+    background-size: 50px 50px;
+    mask-image: radial-gradient(ellipse 100% 80% at 50% 50%, #000 30%, transparent 85%);
+  }
+  .scanlines {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background: repeating-linear-gradient(0deg,rgba(0,240,255,0.016) 0px,rgba(0,240,255,0.016) 1px,transparent 1px,transparent 4px);
+    mix-blend-mode: overlay;
+  }
+
+  /* ── HEADER ── */
+  header { text-align: center; margin-bottom: 18px; position: relative; z-index: 2; }
+  .brand-strip {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 3px 14px; border: 1px solid var(--glass-edge); border-radius: 40px;
+    background: rgba(0,240,255,0.04);
+    font-family: var(--font-mono); font-size: 9px; letter-spacing: 3px;
+    color: var(--cyan); text-transform: uppercase; margin-bottom: 8px;
+  }
+  .brand-strip::before, .brand-strip::after {
+    content:''; width:4px; height:4px; background:var(--cyan); border-radius:50%;
+    box-shadow:0 0 5px var(--cyan); animation:pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:.35;transform:scale(.8)} 50%{opacity:1;transform:scale(1.1)} }
+  @keyframes beamFlow { 0%{background-position:0%} 100%{background-position:200%} }
+  @keyframes flowPulse { 0%,100%{opacity:.5} 50%{opacity:1} }
+
+  h1 {
+    font-family: var(--font-display); font-weight: 900;
+    font-size: clamp(14px, 2vw, 20px); letter-spacing: 2px; text-transform: uppercase;
+    background: linear-gradient(135deg, #fff 0%, var(--cyan) 45%, var(--magenta) 95%);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 12px rgba(0,240,255,0.3));
+  }
+  .accent {
+    background: linear-gradient(135deg, var(--magenta) 0%, var(--purple) 100%);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  }
+
+  /* ── MAIN LAYOUT ── */
+  .main-layout {
+    display: flex; gap: 18px; align-items: flex-start;
+    position: relative; z-index: 2;
+  }
+
+  /* ── PIPELINE FLOW (left) ── */
+  .pipeline-flow {
+    flex: 1; min-width: 0;
+    display: flex; flex-direction: column; align-items: center;
+  }
+
+  /* ── SIDE PANELS (right) ── */
+  .side-panels { width: 255px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; }
+
+  /* ── GLASS CARD ── */
+  .glass-card {
+    position: relative;
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(20,22,56,.55) 0%, rgba(10,10,36,.5) 100%);
+    backdrop-filter: blur(18px) saturate(140%);
+    border: 1px solid rgba(0,240,255,0.14);
+    box-shadow: 0 0 40px rgba(0,0,0,.4), 0 0 60px rgba(0,240,255,.04),
+                0 0 0 1px rgba(255,255,255,.03) inset;
+  }
+  .glass-card::before {
+    content:''; position:absolute; top:0; left:15%; right:15%; height:1px;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);
+  }
+  .panel-title {
+    font-family: var(--font-mono); font-size: 9px; letter-spacing: 3px;
+    text-transform: uppercase; color: var(--cyan);
+    margin-bottom: 11px; padding-bottom: 8px;
+    border-bottom: 1px solid rgba(0,240,255,0.18);
+  }
+
+  /* ── AGENT NODE CARD ── */
+  .anode {
+    position: relative; border-radius: 14px;
+    background: linear-gradient(160deg, rgba(16,19,52,.92) 0%, rgba(10,12,34,.97) 100%);
+    border: 1px solid rgba(0,240,255,.2);
+    padding: 10px 15px 11px; text-align: center; overflow: hidden;
+    transition: transform .3s ease, box-shadow .3s ease;
+    width: 100%;
+  }
+  .anode::after {
+    content:''; position:absolute; top:0; left:18%; right:18%; height:1px;
+    background:linear-gradient(90deg,transparent,rgba(0,240,255,.5),transparent);
+  }
+  .anode:hover { transform:translateY(-2px); }
+
+  /* variants */
+  .anode.n-input   { max-width:230px; border-color:rgba(168,85,247,.4); }
+  .anode.n-input::after { background:linear-gradient(90deg,transparent,rgba(168,85,247,.6),transparent); }
+
+  .anode.n-super   { max-width:400px; border-color:var(--magenta);
+                     box-shadow:0 0 28px rgba(255,45,138,.2),0 0 55px rgba(255,45,138,.07); }
+  .anode.n-super::after { background:linear-gradient(90deg,transparent,var(--magenta),transparent); }
+  .anode.n-super:hover  { box-shadow:0 0 38px rgba(255,45,138,.3); }
+
+  .anode.n-explore { max-width:360px; border-color:rgba(0,240,255,.45);
+                     box-shadow:0 0 20px rgba(0,240,255,.08); }
+
+  .anode.n-prep    { max-width:360px; border-color:rgba(168,85,247,.45);
+                     box-shadow:0 0 20px rgba(168,85,247,.08); }
+  .anode.n-prep::after { background:linear-gradient(90deg,transparent,rgba(168,85,247,.6),transparent); }
+
+  .anode.n-train   { max-width:360px; border-color:rgba(16,232,160,.45);
+                     box-shadow:0 0 20px rgba(16,232,160,.08); }
+  .anode.n-train::after { background:linear-gradient(90deg,transparent,rgba(16,232,160,.6),transparent); }
+
+  .anode.n-test    { max-width:360px; border-color:rgba(251,191,36,.45);
+                     box-shadow:0 0 20px rgba(251,191,36,.08); }
+  .anode.n-test::after { background:linear-gradient(90deg,transparent,rgba(251,191,36,.6),transparent); }
+
+  .anode.n-end     { max-width:200px; border-color:rgba(16,232,160,.55);
+                     box-shadow:0 0 28px rgba(16,232,160,.18); }
+  .anode.n-end::after { background:linear-gradient(90deg,transparent,var(--green),transparent); }
+
+  /* ── NODE INTERNALS ── */
+  .atag {
+    font-family:var(--font-mono); font-size:8px; letter-spacing:2.5px;
+    text-transform:uppercase; margin-bottom:5px;
+    display:flex; align-items:center; justify-content:center; gap:5px;
+  }
+  .atag::before { content:''; width:4px; height:4px; border-radius:50%; }
+
+  .n-input  .atag { color:var(--purple); }
+  .n-input  .atag::before { background:var(--purple); box-shadow:0 0 5px var(--purple); }
+  .n-super  .atag { color:var(--magenta); }
+  .n-super  .atag::before { background:var(--magenta); box-shadow:0 0 5px var(--magenta); animation:pulse 1s ease-in-out infinite; }
+  .n-explore .atag { color:var(--cyan); }
+  .n-explore .atag::before { background:var(--cyan); box-shadow:0 0 5px var(--cyan); }
+  .n-prep   .atag { color:var(--purple); }
+  .n-prep   .atag::before { background:var(--purple); box-shadow:0 0 5px var(--purple); }
+  .n-train  .atag { color:var(--green); }
+  .n-train  .atag::before { background:var(--green); box-shadow:0 0 5px var(--green); }
+  .n-test   .atag { color:var(--amber); }
+  .n-test   .atag::before { background:var(--amber); box-shadow:0 0 5px var(--amber); }
+  .n-end    .atag { color:var(--green); }
+  .n-end    .atag::before { background:var(--green); box-shadow:0 0 5px var(--green); }
+
+  .aicon {
+    display:flex; align-items:center; justify-content:center;
+    width:36px; height:36px; margin:0 auto 6px; border-radius:9px;
+    border:1px solid rgba(0,240,255,.22);
+    background:linear-gradient(135deg,rgba(0,240,255,.1),rgba(168,85,247,.06));
+  }
+  .aicon svg { width:18px; height:18px; stroke-width:1.7; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+  .n-super  .aicon { width:44px;height:44px;border-radius:11px;border-color:var(--magenta);
+                     background:linear-gradient(135deg,rgba(255,45,138,.22),rgba(168,85,247,.1));
+                     box-shadow:0 0 16px rgba(255,45,138,.25); }
+  .n-super  .aicon svg { width:24px;height:24px;stroke:var(--magenta);filter:drop-shadow(0 0 5px var(--magenta)); }
+  .n-input  .aicon { border-color:rgba(168,85,247,.4);background:linear-gradient(135deg,rgba(168,85,247,.14),rgba(255,45,138,.07)); }
+  .n-input  .aicon svg { stroke:var(--purple); }
+  .n-explore .aicon { border-color:rgba(0,240,255,.38); }
+  .n-explore .aicon svg { stroke:var(--cyan); }
+  .n-prep   .aicon { border-color:rgba(168,85,247,.38);background:linear-gradient(135deg,rgba(168,85,247,.12),transparent); }
+  .n-prep   .aicon svg { stroke:var(--purple); }
+  .n-train  .aicon { border-color:rgba(16,232,160,.38);background:linear-gradient(135deg,rgba(16,232,160,.12),transparent); }
+  .n-train  .aicon svg { stroke:var(--green); }
+  .n-test   .aicon { border-color:rgba(251,191,36,.38);background:linear-gradient(135deg,rgba(251,191,36,.12),transparent); }
+  .n-test   .aicon svg { stroke:var(--amber); }
+  .n-end    .aicon { border-color:rgba(16,232,160,.45);background:linear-gradient(135deg,rgba(16,232,160,.14),transparent); }
+  .n-end    .aicon svg { stroke:var(--green); }
+
+  .atitle {
+    font-family:var(--font-display); font-size:12px; font-weight:700;
+    letter-spacing:1px; text-transform:uppercase; color:#fff; margin-bottom:3px;
+  }
+  .n-super .atitle { font-size:15px; letter-spacing:2px; }
+  .adesc   { font-family:var(--font-body); font-size:11px; color:var(--text-dim); letter-spacing:.4px; }
+
+  .role-section {
+    margin-top:9px; padding-top:8px;
+    border-top:1px solid rgba(255,255,255,0.07); text-align:left;
+  }
+  .role-label {
+    font-family:var(--font-mono); font-size:8px; letter-spacing:2px;
+    text-transform:uppercase; color:var(--text-dim); margin-bottom:5px;
+  }
+  .role-item {
+    font-family:var(--font-body); font-size:11px; color:var(--text-dim);
+    padding-left:11px; position:relative; margin-bottom:3px; line-height:1.4;
+  }
+  .role-item::before { content:'›'; position:absolute; left:0; color:var(--cyan); }
+
+  .output-row {
+    display:flex; gap:5px; margin-top:9px; flex-wrap:wrap; justify-content:center;
+  }
+  .chip {
+    font-family:var(--font-mono); font-size:8px; letter-spacing:1.5px;
+    text-transform:uppercase; padding:2px 8px; border-radius:20px; border:1px solid;
+  }
+  .c-cyan   { border-color:rgba(0,240,255,.5);   color:var(--cyan);    background:rgba(0,240,255,.07); }
+  .c-purple { border-color:rgba(168,85,247,.5);  color:var(--purple);  background:rgba(168,85,247,.07); }
+  .c-green  { border-color:rgba(16,232,160,.5);  color:var(--green);   background:rgba(16,232,160,.07); }
+  .c-amber  { border-color:rgba(251,191,36,.5);  color:var(--amber);   background:rgba(251,191,36,.07); }
+  .c-mag    { border-color:rgba(255,45,138,.5);  color:var(--magenta); background:rgba(255,45,138,.07); }
+  .c-red    { border-color:rgba(248,113,113,.5); color:var(--red);     background:rgba(248,113,113,.07); }
+
+  /* ── CONNECTORS ── */
+  .v-conn {
+    width:2px; height:22px; margin:0 auto; position:relative; flex-shrink:0;
+    background:linear-gradient(to bottom,rgba(0,240,255,.75),rgba(0,240,255,.18));
+  }
+  .v-conn::after {
+    content:''; position:absolute; bottom:-5px; left:50%; transform:translateX(-50%);
+    border-left:5px solid transparent; border-right:5px solid transparent;
+    border-top:6px solid var(--cyan); filter:drop-shadow(0 0 3px var(--cyan));
+  }
+  .v-conn.vc-purple  { background:linear-gradient(to bottom,rgba(168,85,247,.8),rgba(168,85,247,.18)); }
+  .v-conn.vc-purple::after  { border-top-color:var(--purple); filter:drop-shadow(0 0 3px var(--purple)); }
+  .v-conn.vc-magenta { background:linear-gradient(to bottom,rgba(255,45,138,.9),rgba(255,45,138,.18)); }
+  .v-conn.vc-magenta::after { border-top-color:var(--magenta); filter:drop-shadow(0 0 3px var(--magenta)); }
+  .v-conn.vc-green   { background:linear-gradient(to bottom,rgba(16,232,160,.8),rgba(16,232,160,.18)); }
+  .v-conn.vc-green::after   { border-top-color:var(--green); filter:drop-shadow(0 0 3px var(--green)); }
+  .v-conn.vc-amber   { background:linear-gradient(to bottom,rgba(251,191,36,.8),rgba(251,191,36,.18)); }
+  .v-conn.vc-amber::after   { border-top-color:var(--amber); filter:drop-shadow(0 0 3px var(--amber)); }
+  .v-conn.vc-red     { background:linear-gradient(to bottom,rgba(248,113,113,.8),rgba(248,113,113,.18)); }
+  .v-conn.vc-red::after     { border-top-color:var(--red); filter:drop-shadow(0 0 3px var(--red)); }
+
+  .conn-label {
+    font-family:var(--font-mono); font-size:9px; letter-spacing:1px; text-align:center;
+    color:var(--text-dim); padding:2px 10px; margin:4px 0;
+    background:rgba(0,0,0,.5); border-radius:10px;
+    border:1px solid rgba(255,255,255,0.07);
+  }
+
+  /* ── DECISION FORK ── */
+  .decision-box {
+    font-family:var(--font-mono); font-size:9px; letter-spacing:2px;
+    text-transform:uppercase; color:var(--magenta); text-align:center;
+    padding:5px 14px; border:1px solid rgba(255,45,138,.4); border-radius:20px;
+    background:rgba(255,45,138,.08); margin:4px 0;
+  }
+
+  .fork-wrap {
+    width:100%; max-width:400px;
+    display:flex; gap:12px; align-items:flex-start;
+    position:relative;
+  }
+  .fork-wrap::before {
+    content:''; position:absolute; top:0; left:20%; right:20%; height:2px;
+    background:linear-gradient(90deg,rgba(248,113,113,.8),rgba(16,232,160,.8));
+    box-shadow:0 0 8px rgba(248,113,113,.3),0 0 16px rgba(16,232,160,.2);
+    animation:beamFlow 2.5s linear infinite; background-size:200% 100%;
+  }
+  .fork-branch {
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:0;
+  }
+  .branch-label {
+    font-family:var(--font-mono); font-size:8px; letter-spacing:1.5px;
+    text-transform:uppercase; padding:3px 9px; border-radius:20px; margin-bottom:5px;
+  }
+  .bl-fail { color:var(--red);   border:1px solid rgba(248,113,113,.5); background:rgba(248,113,113,.09); }
+  .bl-pass { color:var(--green); border:1px solid rgba(16,232,160,.5);  background:rgba(16,232,160,.09); }
+
+  .feedback-box {
+    width:100%; padding:10px 12px; border-radius:10px;
+    border:1px dashed rgba(248,113,113,.5); background:rgba(248,113,113,.06);
+    text-align:center;
+  }
+  .feedback-box .fb-title {
+    font-family:var(--font-mono); font-size:9px; letter-spacing:1.5px;
+    text-transform:uppercase; color:var(--red); margin-bottom:5px;
+  }
+  .feedback-box .fb-body {
+    font-family:var(--font-body); font-size:11px; color:var(--text-dim); line-height:1.5;
+  }
+  .fb-arrow {
+    font-size:18px; color:var(--red); filter:drop-shadow(0 0 4px var(--red));
+    animation:flowPulse 1.5s ease-in-out infinite;
+  }
+
+  /* ── STATE FIELD ── */
+  .sf {
+    margin-bottom:9px; padding:8px 10px; border-radius:8px;
+    border-left:2px solid; background:rgba(0,0,0,.35);
+  }
+  .sf-name {
+    font-family:var(--font-mono); font-size:9px; letter-spacing:1px; margin-bottom:3px;
+  }
+  .sf-desc {
+    font-family:var(--font-body); font-size:11px; color:var(--text-dim); line-height:1.4;
+  }
+  .sf.s-cyan    { border-color:var(--cyan);    } .sf.s-cyan    .sf-name { color:var(--cyan); }
+  .sf.s-purple  { border-color:var(--purple);  } .sf.s-purple  .sf-name { color:var(--purple); }
+  .sf.s-green   { border-color:var(--green);   } .sf.s-green   .sf-name { color:var(--green); }
+  .sf.s-amber   { border-color:var(--amber);   } .sf.s-amber   .sf-name { color:var(--amber); }
+  .sf.s-magenta { border-color:var(--magenta); } .sf.s-magenta .sf-name { color:var(--magenta); }
+  .sf.s-orange  { border-color:var(--orange);  } .sf.s-orange  .sf-name { color:var(--orange); }
+
+  /* ── INFO ROW (in side panel) ── */
+  .info-row { margin-bottom:11px; }
+  .info-from {
+    font-family:var(--font-mono); font-size:8px; letter-spacing:2px;
+    text-transform:uppercase; margin-bottom:4px;
+  }
+  .info-body { font-family:var(--font-body); font-size:11px; color:var(--text-dim); line-height:1.45; }
+
+  /* routing logic list */
+  .route-list {
+    font-family:var(--font-mono); font-size:10px; line-height:1.9; color:var(--text-dim);
+    list-style:none;
+  }
+  .route-list li::before { content:'›› '; color:var(--cyan); }
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="scanlines"></div>
+
+<!-- HEADER -->
+<header>
+  <div class="brand-strip">DataJarvis.AI · Agent Architecture</div>
+  <h1>ML Pipeline <span class="accent">Multi-Agent</span> System</h1>
+</header>
+
+<div class="main-layout">
+
+  <!-- ═══════════════════ LEFT: PIPELINE FLOW ═══════════════════ -->
+  <div class="pipeline-flow">
+
+    <!-- Task Input -->
+    <div class="anode n-input">
+      <div class="atag">Input</div>
+      <div class="aicon"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+      <div class="atitle">Task</div>
+      <div class="adesc">Build breast cancer classifier · accuracy ≥ 0.96</div>
+    </div>
+
+    <div class="v-conn vc-purple" style="height:18px;"></div>
+
+    <!-- ── SUPERVISOR ── -->
+    <div class="anode n-super">
+      <div class="atag">Supervisor</div>
+      <div class="aicon">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M8.46 8.46a5 5 0 0 0 0 7.07"/></svg>
+      </div>
+      <div class="atitle">Supervisor Agent</div>
+      <div class="adesc">Plans · Evaluates · Routes · Maintains State Memo</div>
+      <div class="role-section">
+        <div class="role-label">Responsibilities</div>
+        <div class="role-item">Inspects full pipeline state at each step</div>
+        <div class="role-item">Decides next agent and writes targeted instruction</div>
+        <div class="role-item">Evaluates model accuracy against threshold (0.96)</div>
+        <div class="role-item">Appends reasoning to cumulative supervisor_memo</div>
+        <div class="role-item">Triggers feedback loop or advances to testing</div>
+        <div class="role-item"><strong style="color:var(--magenta)">End condition:</strong> routes to END after testing completes</div>
+      </div>
+      <div class="output-row">
+        <span class="chip c-mag">next_agent</span>
+        <span class="chip c-mag">instruction</span>
+        <span class="chip c-mag">supervisor_memo ↑</span>
+        <span class="chip c-mag">iteration_count</span>
+      </div>
+    </div>
+
+    <div class="v-conn vc-magenta"></div>
+
+    <!-- ── DATA EXPLORATION ── -->
+    <div class="anode n-explore">
+      <div class="atag">Sub-Agent 1</div>
+      <div class="aicon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+      <div class="atitle">Data Exploration</div>
+      <div class="adesc">Profiles dataset — activated once at pipeline start</div>
+      <div class="role-section">
+        <div class="role-label">Actions</div>
+        <div class="role-item">Loads sklearn breast cancer dataset (569 samples, 30 features)</div>
+        <div class="role-item">Computes class distribution, missing values, feature scale ranges</div>
+        <div class="role-item">Detects scale imbalance across features</div>
+        <div class="role-item">LLM reasons: key risks, preprocessing recommendations, model suggestions</div>
+      </div>
+      <div class="output-row">
+        <span class="chip c-cyan">dataset_info</span>
+        <span class="chip c-cyan">class_distribution</span>
+        <span class="chip c-cyan">feature_stats</span>
+        <span class="chip c-cyan">reasoning_log ↑</span>
+      </div>
+    </div>
+
+    <div class="conn-label" style="margin:6px 0;">→ reports dataset_info · supervisor reads and routes to data_prep</div>
+    <div class="v-conn"></div>
+
+    <!-- ── DATA PREP ── -->
+    <div class="anode n-prep">
+      <div class="atag">Sub-Agent 2</div>
+      <div class="aicon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+      <div class="atitle">Data Prep</div>
+      <div class="adesc">Prepares features — re-runs if accuracy fails threshold</div>
+      <div class="role-section">
+        <div class="role-label">Iteration-Aware Strategy</div>
+        <div class="role-item"><strong style="color:var(--purple);">Pass 1 (iter=0):</strong> 10 features only, no scaling — baseline</div>
+        <div class="role-item"><strong style="color:var(--magenta);">Pass 2+ (iter≥1):</strong> All 30 features + StandardScaler</div>
+        <div class="role-item">Stratified 80/20 train/test split each pass</div>
+        <div class="role-item">LLM explains choices in context of previous failure</div>
+        <div class="role-item"><strong style="color:var(--cyan);">Condition to activate:</strong> supervisor routes here when prep needed or accuracy FAIL</div>
+      </div>
+      <div class="output-row">
+        <span class="chip c-purple">prep_info</span>
+        <span class="chip c-purple">X_train · X_test</span>
+        <span class="chip c-purple">y_train · y_test</span>
+        <span class="chip c-purple">scaler (iter≥1)</span>
+      </div>
+    </div>
+
+    <div class="conn-label" style="margin:6px 0;">⚡ direct chain → no supervisor step between prep and training</div>
+    <div class="v-conn vc-green" style="height:20px;"></div>
+
+    <!-- ── MODEL TRAINING ── -->
+    <div class="anode n-train">
+      <div class="atag">Sub-Agent 3</div>
+      <div class="aicon"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+      <div class="atitle">Model Training</div>
+      <div class="adesc">Trains model and returns accuracy to supervisor</div>
+      <div class="role-section">
+        <div class="role-label">Model Selection (by iteration)</div>
+        <div class="role-item"><strong style="color:var(--green);">iter=0:</strong> Logistic Regression (max_iter=200, unscaled) → ~0.90–0.93</div>
+        <div class="role-item"><strong style="color:var(--cyan);">iter≥1:</strong> Random Forest (n_estimators=150, scaled) → ~0.97+</div>
+        <div class="role-item">Evaluates on held-out test set, produces classification report</div>
+        <div class="role-item">LLM analyses: what to improve if below threshold</div>
+      </div>
+      <div class="output-row">
+        <span class="chip c-green">model_results</span>
+        <span class="chip c-green">accuracy (float)</span>
+        <span class="chip c-green">passed_threshold</span>
+        <span class="chip c-green">classification_report</span>
+      </div>
+    </div>
+
+    <div class="conn-label" style="margin:6px 0;">→ returns model_results to supervisor for evaluation</div>
+    <div class="v-conn vc-magenta"></div>
+
+    <!-- ── DECISION ── -->
+    <div class="decision-box">⚖ Supervisor Evaluates: accuracy vs threshold 0.96</div>
+    <div class="v-conn vc-magenta" style="height:12px;"></div>
+
+    <!-- ── FORK ── -->
+    <div class="fork-wrap">
+      <div class="fork-wrap::before"></div>
+
+      <!-- FAIL branch (left) -->
+      <div class="fork-branch">
+        <div class="v-conn vc-red" style="height:18px;"></div>
+        <div class="branch-label bl-fail">✗ FAIL · accuracy &lt; 0.96</div>
+        <div class="feedback-box">
+          <div class="fb-arrow">↑</div>
+          <div class="fb-title">Feedback Loop</div>
+          <div class="fb-body">
+            iteration_count++<br/>
+            Supervisor writes improved instruction to data_prep:<br/>
+            <em>"Use all features + StandardScaler"</em><br/><br/>
+            <span style="color:var(--red);">Max iterations: 3 — then forced to testing</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- PASS branch (right) -->
+      <div class="fork-branch">
+        <div class="v-conn vc-green" style="height:18px;"></div>
+        <div class="branch-label bl-pass">✓ PASS · accuracy ≥ 0.96</div>
+        <div class="v-conn vc-green" style="height:14px;"></div>
+
+        <!-- Testing -->
+        <div class="anode n-test" style="width:100%;">
+          <div class="atag">Sub-Agent 4</div>
+          <div class="aicon"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+          <div class="atitle">Testing</div>
+          <div class="adesc">Final evaluation — activated once, triggers END</div>
+          <div class="role-section">
+            <div class="role-label">Outputs</div>
+            <div class="role-item">Final accuracy score + full classification report</div>
+            <div class="role-item">Confusion matrix (true/false positives and negatives)</div>
+            <div class="role-item">Top-5 feature importances (Random Forest)</div>
+            <div class="role-item">LLM writes production readiness report</div>
+            <div class="role-item"><strong style="color:var(--amber);">End condition:</strong> sets pipeline_complete = True → supervisor routes to END</div>
+          </div>
+          <div class="output-row">
+            <span class="chip c-amber">test_results</span>
+            <span class="chip c-amber">final_accuracy</span>
+            <span class="chip c-amber">confusion_matrix</span>
+            <span class="chip c-amber">top_features</span>
+          </div>
+        </div>
+
+        <div class="v-conn vc-green" style="height:14px;"></div>
+
+        <!-- END -->
+        <div class="anode n-end">
+          <div class="atag">Terminal</div>
+          <div class="aicon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="atitle">END</div>
+          <div class="adesc">Pipeline complete · Reasoning log displayed</div>
+        </div>
+      </div>
+    </div><!-- /fork-wrap -->
+
+  </div><!-- /pipeline-flow -->
+
+  <!-- ═══════════════════ RIGHT: SIDE PANELS ═══════════════════ -->
+  <div class="side-panels">
+
+    <!-- State Memo -->
+    <div class="glass-card">
+      <div class="panel-title">// Shared State (MLPipelineState)</div>
+
+      <div class="sf s-cyan">
+        <div class="sf-name">📊 dataset_info</div>
+        <div class="sf-desc">n_samples, n_features, feature_names, class_distribution, missing_values, scale ranges</div>
+      </div>
+      <div class="sf s-purple">
+        <div class="sf-name">🔧 prep_info</div>
+        <div class="sf-desc">description, n_features_used, train_size, test_size, scaling (bool)</div>
+      </div>
+      <div class="sf s-green">
+        <div class="sf-name">🤖 model_results</div>
+        <div class="sf-desc">model_name, accuracy, classification_report, iteration, passed_threshold (bool)</div>
+      </div>
+      <div class="sf s-amber">
+        <div class="sf-name">🧪 test_results</div>
+        <div class="sf-desc">final_accuracy, confusion_matrix, top_features, classification_report</div>
+      </div>
+      <div class="sf s-magenta">
+        <div class="sf-name">💭 supervisor_memo</div>
+        <div class="sf-desc">Cumulative scratchpad — supervisor appends reasoning after every agent call</div>
+      </div>
+      <div class="sf s-orange">
+        <div class="sf-name">📋 reasoning_log</div>
+        <div class="sf-desc">Full ordered list of every agent's LLM reasoning — rendered at end of notebook</div>
+      </div>
+      <div class="sf s-cyan" style="border-color:rgba(255,255,255,0.25);">
+        <div class="sf-name" style="color:var(--text-dim);">⚙ control fields</div>
+        <div class="sf-desc">iteration_count · max_iterations (3) · accuracy_threshold (0.96) · pipeline_complete</div>
+      </div>
+    </div>
+
+    <!-- Info Exchange -->
+    <div class="glass-card">
+      <div class="panel-title">// Info Exchanged Between Agents</div>
+
+      <div class="info-row">
+        <div class="info-from" style="color:var(--cyan);">EXPLORATION → SUPERVISOR</div>
+        <div class="info-body">Dataset profile: shape, class balance (212 malignant / 357 benign), large feature scale spread — recommendations for preprocessing</div>
+      </div>
+      <div class="info-row">
+        <div class="info-from" style="color:var(--magenta);">SUPERVISOR → DATA PREP</div>
+        <div class="info-body">Routing instruction: e.g. <em>"Use all 30 features with StandardScaler — previous model failed at 0.93"</em></div>
+      </div>
+      <div class="info-row">
+        <div class="info-from" style="color:var(--purple);">DATA PREP → MODEL TRAINING</div>
+        <div class="info-body">X_train, X_test, y_train, y_test (via global data_store) + prep_info dict (description, feature count, scaling flag)</div>
+      </div>
+      <div class="info-row">
+        <div class="info-from" style="color:var(--green);">TRAINING → SUPERVISOR</div>
+        <div class="info-body">model_name, accuracy (float), classification_report, passed_threshold (bool) — triggers pass/fail decision</div>
+      </div>
+      <div class="info-row" style="margin-bottom:0;">
+        <div class="info-from" style="color:var(--amber);">TESTING → SUPERVISOR</div>
+        <div class="info-body">final_accuracy, confusion_matrix [[TN,FP],[FN,TP]], top-5 feature importances, LLM production report</div>
+      </div>
+    </div>
+
+    <!-- Routing Logic -->
+    <div class="glass-card">
+      <div class="panel-title">// Supervisor Routing Logic</div>
+      <ul class="route-list">
+        <li>dataset_info empty → <span style="color:var(--cyan);">data_exploration</span></li>
+        <li>prep_info empty → <span style="color:var(--purple);">data_prep</span></li>
+        <li>accuracy ≥ 0.96 → <span style="color:var(--amber);">testing</span></li>
+        <li>accuracy &lt; 0.96 · iter &lt; max → <span style="color:var(--red);">data_prep</span> (iter++)</li>
+        <li>accuracy &lt; 0.96 · iter ≥ max → <span style="color:var(--amber);">testing</span> (best effort)</li>
+        <li>test_results exist → <span style="color:var(--green);">end</span></li>
+      </ul>
+    </div>
+
+  </div><!-- /side-panels -->
+</div><!-- /main-layout -->
+
+</body>
+</html>
