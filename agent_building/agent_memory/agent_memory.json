@@ -1,0 +1,29 @@
+{
+  "facts": [
+    {
+      "fact": "Alex is a PhD student at MIT.",
+      "category": "personal",
+      "saved_at": "2026-06-14T07:45:51.543925"
+    },
+    {
+      "fact": "Alex's advisor is Prof. Chen.",
+      "category": "personal",
+      "saved_at": "2026-06-14T07:45:51.546424"
+    },
+    {
+      "fact": "Alex is working on a paper about transformer attention mechanisms.",
+      "category": "project",
+      "saved_at": "2026-06-14T07:45:51.562580"
+    },
+    {
+      "fact": "The deadline for Alex's transformer attention mechanisms paper is July 15.",
+      "category": "project",
+      "saved_at": "2026-06-14T07:45:51.574015"
+    },
+    {
+      "fact": "Alex prefers concise, bullet-point style responses.",
+      "category": "preference",
+      "saved_at": "2026-06-14T07:45:54.122787"
+    }
+  ]
+}
