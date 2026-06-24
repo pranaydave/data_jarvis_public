@@ -1,0 +1,4 @@
+customer_id,name,industry,account_manager,annual_revenue,tier
+C001,Acme Corp,Manufacturing,Sarah Johnson,5200000,Enterprise
+C002,TechStart Inc,Technology,Mike Chen,800000,Mid-Market
+C003,Global Retail Co,Retail,Sarah Johnson,12000000,Enterprise

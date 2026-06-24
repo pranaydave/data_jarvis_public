@@ -1,0 +1,127 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script src="lib/bindings/utils.js"></script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 580px;
+                 background-color: #050510;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"borderWidth": 2, "color": {"background": "#003322", "border": "#00ffcc", "highlight": {"background": "#00ffcc", "border": "#ffffff"}}, "font": {"color": "#cccccc"}, "id": "C001", "label": "Acme Corp\n[Customer]", "shadow": true, "shape": "dot", "size": 36, "title": "\u003cb\u003eC001\u003c/b\u003e (Customer)\u003cbr\u003ename: Acme Corp\u003cbr\u003etier: Enterprise\u003cbr\u003eindustry: Manufacturing\u003cbr\u003eaccount_manager: Sarah Johnson"}, {"borderWidth": 2, "color": {"background": "#003322", "border": "#00ffcc", "highlight": {"background": "#00ffcc", "border": "#ffffff"}}, "font": {"color": "#cccccc"}, "id": "C002", "label": "TechStart Inc\n[Customer]", "shadow": true, "shape": "dot", "size": 36, "title": "\u003cb\u003eC002\u003c/b\u003e (Customer)\u003cbr\u003ename: TechStart Inc\u003cbr\u003etier: Mid-Market\u003cbr\u003eindustry: Technology\u003cbr\u003eaccount_manager: Mike Chen"}, {"borderWidth": 2, "color": {"background": "#003322", "border": "#00ffcc", "highlight": {"background": "#00ffcc", "border": "#ffffff"}}, "font": {"color": "#cccccc"}, "id": "C003", "label": "Global Retail Co\n[Customer]", "shadow": true, "shape": "dot", "size": 36, "title": "\u003cb\u003eC003\u003c/b\u003e (Customer)\u003cbr\u003ename: Global Retail Co\u003cbr\u003etier: Enterprise\u003cbr\u003eindustry: Retail\u003cbr\u003eaccount_manager: Sarah Johnson"}, {"borderWidth": 2, "color": {"background": "#220033", "border": "#cc00ff", "highlight": {"background": "#cc00ff", "border": "#ffffff"}}, "font": {"color": "#cccccc"}, "id": "P001", "label": "Analytics Basic\n[Product]", "shadow": true, "shape": "dot", "size": 28, "title": "\u003cb\u003eP001\u003c/b\u003e (Product)\u003cbr\u003ename: Analytics Basic\u003cbr\u003ecategory: Analytics\u003cbr\u003eprice: 50000"}, {"borderWidth": 2, "color": {"background": "#220033", "border": "#cc00ff", "highlight": {"background": "#cc00ff", "border": "#ffffff"}}, "font": {"color": "#cccccc"}, "id": "P002", "label": "CRM Suite\n[Product]", "shadow": true, "shape": "dot", "size": 28, "title": "\u003cb\u003eP002\u003c/b\u003e (Product)\u003cbr\u003ename: CRM Suite\u003cbr\u003ecategory: CRM\u003cbr\u003eprice: 80000"}, {"borderWidth": 2, "color": {"background": "#220033", "border": "#cc00ff", "highlight": {"background": "#cc00ff", "border": "#ffffff"}}, "font": {"color": "#cccccc"}, "id": "P003", "label": "Analytics Pro\n[Product]", "shadow": true, "shape": "dot", "size": 28, "title": "\u003cb\u003eP003\u003c/b\u003e (Product)\u003cbr\u003ename: Analytics Pro\u003cbr\u003ecategory: Analytics\u003cbr\u003eprice: 120000"}, {"borderWidth": 2, "color": {"background": "#220033", "border": "#cc00ff", "highlight": {"background": "#cc00ff", "border": "#ffffff"}}, "font": {"color": "#cccccc"}, "id": "P004", "label": "AI Insights\n[Product]", "shadow": true, "shape": "dot", "size": 28, "title": "\u003cb\u003eP004\u003c/b\u003e (Product)\u003cbr\u003ename: AI Insights\u003cbr\u003ecategory: AI/ML\u003cbr\u003eprice: 200000"}, {"borderWidth": 2, "color": {"background": "#001133", "border": "#0099ff", "highlight": {"background": "#0099ff", "border": "#ffffff"}}, "font": {"color": "#cccccc"}, "id": "CT001", "label": "CT001\n[Contract]", "shadow": true, "shape": "dot", "size": 22, "title": "\u003cb\u003eCT001\u003c/b\u003e (Contract)\u003cbr\u003eannual_value: 130000\u003cbr\u003erenewal_days: 45\u003cbr\u003estatus: Active"}, {"borderWidth": 2, "color": {"background": "#001133", "border": "#0099ff", "highlight": {"background": "#0099ff", "border": "#ffffff"}}, "font": {"color": "#cccccc"}, "id": "CT002", "label": "CT002\n[Contract]", "shadow": true, "shape": "dot", "size": 22, "title": "\u003cb\u003eCT002\u003c/b\u003e (Contract)\u003cbr\u003eannual_value: 50000\u003cbr\u003erenewal_days: 204\u003cbr\u003estatus: Active"}, {"borderWidth": 2, "color": {"background": "#001133", "border": "#0099ff", "highlight": {"background": "#0099ff", "border": "#ffffff"}}, "font": {"color": "#cccccc"}, "id": "CT003", "label": "CT003\n[Contract]", "shadow": true, "shape": "dot", "size": 22, "title": "\u003cb\u003eCT003\u003c/b\u003e (Contract)\u003cbr\u003eannual_value: 400000\u003cbr\u003erenewal_days: 73\u003cbr\u003estatus: Active"}, {"borderWidth": 2, "color": {"background": "#330011", "border": "#ff3366", "highlight": {"background": "#ff3366", "border": "#ffffff"}}, "font": {"color": "#cccccc"}, "id": "T001", "label": "Cannot export report..\n[Ticket]", "shadow": true, "shape": "dot", "size": 20, "title": "\u003cb\u003eT001\u003c/b\u003e (Ticket)\u003cbr\u003etitle: Cannot export reports in required format\u003cbr\u003eseverity: Critical\u003cbr\u003estatus: Open\u003cbr\u003edays_open: 36\u003cbr\u003ecompetitor_mention: DataViz Pro\u003cbr\u003efeature_request_id: FR001"}, {"borderWidth": 2, "color": {"background": "#330011", "border": "#ff3366", "highlight": {"background": "#ff3366", "border": "#ffffff"}}, "font": {"color": "#cccccc"}, "id": "T002", "label": "Advanced analytics d..\n[Ticket]", "shadow": true, "shape": "dot", "size": 20, "title": "\u003cb\u003eT002\u003c/b\u003e (Ticket)\u003cbr\u003etitle: Advanced analytics dashboard missing key metrics\u003cbr\u003eseverity: Critical\u003cbr\u003estatus: Open\u003cbr\u003edays_open: 19\u003cbr\u003ecompetitor_mention: DataViz Pro\u003cbr\u003efeature_request_id: FR001"}, {"borderWidth": 2, "color": {"background": "#330011", "border": "#ff3366", "highlight": {"background": "#ff3366", "border": "#ffffff"}}, "font": {"color": "#cccccc"}, "id": "T003", "label": "Data refresh too slo..\n[Ticket]", "shadow": true, "shape": "dot", "size": 20, "title": "\u003cb\u003eT003\u003c/b\u003e (Ticket)\u003cbr\u003etitle: Data refresh too slow for real-time reporting\u003cbr\u003eseverity: High\u003cbr\u003estatus: Open\u003cbr\u003edays_open: 10\u003cbr\u003efeature_request_id: FR001"}, {"borderWidth": 2, "color": {"background": "#330011", "border": "#ff3366", "highlight": {"background": "#ff3366", "border": "#ffffff"}}, "font": {"color": "#cccccc"}, "id": "T004", "label": "API rate limit too r..\n[Ticket]", "shadow": true, "shape": "dot", "size": 20, "title": "\u003cb\u003eT004\u003c/b\u003e (Ticket)\u003cbr\u003etitle: API rate limit too restrictive\u003cbr\u003eseverity: Medium\u003cbr\u003estatus: In Progress\u003cbr\u003edays_open: 5"}, {"borderWidth": 2, "color": {"background": "#332200", "border": "#ffcc00", "highlight": {"background": "#ffcc00", "border": "#ffffff"}}, "font": {"color": "#cccccc"}, "id": "FR001", "label": "Advanced Analytics D..\n[FeatureRequest]", "shadow": true, "shape": "dot", "size": 26, "title": "\u003cb\u003eFR001\u003c/b\u003e (FeatureRequest)\u003cbr\u003etitle: Advanced Analytics Dashboard\u003cbr\u003emonths_pending: 8\u003cbr\u003estatus: In Roadmap\u003cbr\u003eestimated_delivery: Q4 2026"}, {"borderWidth": 2, "color": {"background": "#331100", "border": "#ff6600", "highlight": {"background": "#ff6600", "border": "#ffffff"}}, "font": {"color": "#cccccc"}, "id": "COMP001", "label": "DataViz Pro\n[Competitor]", "shadow": true, "shape": "dot", "size": 30, "title": "\u003cb\u003eCOMP001\u003c/b\u003e (Competitor)\u003cbr\u003ename: DataViz Pro\u003cbr\u003edeal_loss_rate: 0.34"}]);
+                  edges = new vis.DataSet([{"arrows": "to", "color": {"color": "#0099ff", "opacity": 0.75}, "font": {"color": "#0099ff", "size": 8}, "from": "C001", "label": "HAS_CONTRACT", "title": "HAS_CONTRACT", "to": "CT001", "width": 1.8}, {"arrows": "to", "color": {"color": "#cc00ff", "opacity": 0.75}, "font": {"color": "#cc00ff", "size": 8}, "from": "C001", "label": "PURCHASED", "title": "PURCHASED", "to": "P001", "width": 1.8}, {"arrows": "to", "color": {"color": "#cc00ff", "opacity": 0.75}, "font": {"color": "#cc00ff", "size": 8}, "from": "C001", "label": "PURCHASED", "title": "PURCHASED", "to": "P002", "width": 1.8}, {"arrows": "to", "color": {"color": "#ff3366", "opacity": 0.75}, "font": {"color": "#ff3366", "size": 8}, "from": "C001", "label": "HAS_TICKET", "title": "HAS_TICKET", "to": "T001", "width": 1.8}, {"arrows": "to", "color": {"color": "#ff3366", "opacity": 0.75}, "font": {"color": "#ff3366", "size": 8}, "from": "C001", "label": "HAS_TICKET", "title": "HAS_TICKET", "to": "T002", "width": 1.8}, {"arrows": "to", "color": {"color": "#ff3366", "opacity": 0.75}, "font": {"color": "#ff3366", "size": 8}, "from": "C001", "label": "HAS_TICKET", "title": "HAS_TICKET", "to": "T003", "width": 1.8}, {"arrows": "to", "color": {"color": "#0099ff", "opacity": 0.75}, "font": {"color": "#0099ff", "size": 8}, "from": "C002", "label": "HAS_CONTRACT", "title": "HAS_CONTRACT", "to": "CT002", "width": 1.8}, {"arrows": "to", "color": {"color": "#cc00ff", "opacity": 0.75}, "font": {"color": "#cc00ff", "size": 8}, "from": "C002", "label": "PURCHASED", "title": "PURCHASED", "to": "P001", "width": 1.8}, {"arrows": "to", "color": {"color": "#ff3366", "opacity": 0.75}, "font": {"color": "#ff3366", "size": 8}, "from": "C002", "label": "HAS_TICKET", "title": "HAS_TICKET", "to": "T004", "width": 1.8}, {"arrows": "to", "color": {"color": "#0099ff", "opacity": 0.75}, "font": {"color": "#0099ff", "size": 8}, "from": "C003", "label": "HAS_CONTRACT", "title": "HAS_CONTRACT", "to": "CT003", "width": 1.8}, {"arrows": "to", "color": {"color": "#cc00ff", "opacity": 0.75}, "font": {"color": "#cc00ff", "size": 8}, "from": "C003", "label": "PURCHASED", "title": "PURCHASED", "to": "P002", "width": 1.8}, {"arrows": "to", "color": {"color": "#cc00ff", "opacity": 0.75}, "font": {"color": "#cc00ff", "size": 8}, "from": "C003", "label": "PURCHASED", "title": "PURCHASED", "to": "P003", "width": 1.8}, {"arrows": "to", "color": {"color": "#cc00ff", "opacity": 0.75}, "font": {"color": "#cc00ff", "size": 8}, "from": "C003", "label": "PURCHASED", "title": "PURCHASED", "to": "P004", "width": 1.8}, {"arrows": "to", "color": {"color": "#ff8800", "opacity": 0.75}, "font": {"color": "#ff8800", "size": 8}, "from": "T001", "label": "RELATED_TO_PRODUCT", "title": "RELATED_TO_PRODUCT", "to": "P001", "width": 1.8}, {"arrows": "to", "color": {"color": "#ffcc00", "opacity": 0.75}, "font": {"color": "#ffcc00", "size": 8}, "from": "T001", "label": "LINKED_TO_FEATURE", "title": "LINKED_TO_FEATURE", "to": "FR001", "width": 1.8}, {"arrows": "to", "color": {"color": "#ff4400", "opacity": 0.75}, "font": {"color": "#ff4400", "size": 8}, "from": "T001", "label": "MENTIONS_COMPETITOR", "title": "MENTIONS_COMPETITOR", "to": "COMP001", "width": 1.8}, {"arrows": "to", "color": {"color": "#ff8800", "opacity": 0.75}, "font": {"color": "#ff8800", "size": 8}, "from": "T002", "label": "RELATED_TO_PRODUCT", "title": "RELATED_TO_PRODUCT", "to": "P001", "width": 1.8}, {"arrows": "to", "color": {"color": "#ffcc00", "opacity": 0.75}, "font": {"color": "#ffcc00", "size": 8}, "from": "T002", "label": "LINKED_TO_FEATURE", "title": "LINKED_TO_FEATURE", "to": "FR001", "width": 1.8}, {"arrows": "to", "color": {"color": "#ff4400", "opacity": 0.75}, "font": {"color": "#ff4400", "size": 8}, "from": "T002", "label": "MENTIONS_COMPETITOR", "title": "MENTIONS_COMPETITOR", "to": "COMP001", "width": 1.8}, {"arrows": "to", "color": {"color": "#ff8800", "opacity": 0.75}, "font": {"color": "#ff8800", "size": 8}, "from": "T003", "label": "RELATED_TO_PRODUCT", "title": "RELATED_TO_PRODUCT", "to": "P001", "width": 1.8}, {"arrows": "to", "color": {"color": "#ffcc00", "opacity": 0.75}, "font": {"color": "#ffcc00", "size": 8}, "from": "T003", "label": "LINKED_TO_FEATURE", "title": "LINKED_TO_FEATURE", "to": "FR001", "width": 1.8}, {"arrows": "to", "color": {"color": "#ff8800", "opacity": 0.75}, "font": {"color": "#ff8800", "size": 8}, "from": "T004", "label": "RELATED_TO_PRODUCT", "title": "RELATED_TO_PRODUCT", "to": "P001", "width": 1.8}, {"arrows": "to", "color": {"color": "#00ff88", "opacity": 0.75}, "font": {"color": "#00ff88", "size": 8}, "from": "FR001", "label": "UPGRADE_PATH", "title": "UPGRADE_PATH", "to": "P003", "width": 1.8}, {"arrows": "to", "color": {"color": "#ff2222", "opacity": 0.75}, "font": {"color": "#ff2222", "size": 8}, "from": "FR001", "label": "COMPETITOR_HAS", "title": "COMPETITOR_HAS", "to": "COMP001", "width": 1.8}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {"physics": {"barnesHut": {"gravitationalConstant": -18000, "centralGravity": 0.3, "springLength": 160, "springConstant": 0.04, "damping": 0.09}, "stabilization": {"iterations": 250}}, "interaction": {"hover": true, "tooltipDelay": 100}};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>

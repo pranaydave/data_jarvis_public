@@ -1,0 +1,44 @@
+[
+  {
+    "customer_id": "C001",
+    "product_id": "P001",
+    "usage_percent": 23,
+    "last_login_days": 14,
+    "benchmark_avg": 72
+  },
+  {
+    "customer_id": "C001",
+    "product_id": "P002",
+    "usage_percent": 78,
+    "last_login_days": 2,
+    "benchmark_avg": 68
+  },
+  {
+    "customer_id": "C002",
+    "product_id": "P001",
+    "usage_percent": 65,
+    "last_login_days": 1,
+    "benchmark_avg": 72
+  },
+  {
+    "customer_id": "C003",
+    "product_id": "P002",
+    "usage_percent": 81,
+    "last_login_days": 1,
+    "benchmark_avg": 68
+  },
+  {
+    "customer_id": "C003",
+    "product_id": "P003",
+    "usage_percent": 74,
+    "last_login_days": 2,
+    "benchmark_avg": 70
+  },
+  {
+    "customer_id": "C003",
+    "product_id": "P004",
+    "usage_percent": 55,
+    "last_login_days": 3,
+    "benchmark_avg": 60
+  }
+]

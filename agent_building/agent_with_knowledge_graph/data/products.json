@@ -1,0 +1,26 @@
+[
+  {
+    "product_id": "P001",
+    "name": "Analytics Basic",
+    "category": "Analytics",
+    "price": 50000
+  },
+  {
+    "product_id": "P002",
+    "name": "CRM Suite",
+    "category": "CRM",
+    "price": 80000
+  },
+  {
+    "product_id": "P003",
+    "name": "Analytics Pro",
+    "category": "Analytics",
+    "price": 120000
+  },
+  {
+    "product_id": "P004",
+    "name": "AI Insights",
+    "category": "AI/ML",
+    "price": 200000
+  }
+]

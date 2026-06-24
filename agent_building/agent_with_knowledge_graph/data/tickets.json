@@ -1,0 +1,46 @@
+[
+  {
+    "ticket_id": "T001",
+    "customer_id": "C001",
+    "product_id": "P001",
+    "title": "Cannot export reports in required format",
+    "severity": "Critical",
+    "status": "Open",
+    "days_open": 36,
+    "competitor_mention": "DataViz Pro",
+    "feature_request_id": "FR001"
+  },
+  {
+    "ticket_id": "T002",
+    "customer_id": "C001",
+    "product_id": "P001",
+    "title": "Advanced analytics dashboard missing key metrics",
+    "severity": "Critical",
+    "status": "Open",
+    "days_open": 19,
+    "competitor_mention": "DataViz Pro",
+    "feature_request_id": "FR001"
+  },
+  {
+    "ticket_id": "T003",
+    "customer_id": "C001",
+    "product_id": "P001",
+    "title": "Data refresh too slow for real-time reporting",
+    "severity": "High",
+    "status": "Open",
+    "days_open": 10,
+    "competitor_mention": null,
+    "feature_request_id": "FR001"
+  },
+  {
+    "ticket_id": "T004",
+    "customer_id": "C002",
+    "product_id": "P001",
+    "title": "API rate limit too restrictive",
+    "severity": "Medium",
+    "status": "In Progress",
+    "days_open": 5,
+    "competitor_mention": null,
+    "feature_request_id": null
+  }
+]

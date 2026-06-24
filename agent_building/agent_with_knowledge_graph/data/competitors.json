@@ -1,0 +1,12 @@
+[
+  {
+    "competitor_id": "COMP001",
+    "name": "DataViz Pro",
+    "strengths": [
+      "Advanced Analytics Dashboard",
+      "Real-time reporting",
+      "Flexible export"
+    ],
+    "deal_loss_rate": 0.34
+  }
+]

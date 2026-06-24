@@ -1,0 +1,13 @@
+[
+  {
+    "fr_id": "FR001",
+    "title": "Advanced Analytics Dashboard",
+    "product_id": "P001",
+    "requested_by": "C001",
+    "months_pending": 8,
+    "status": "In Roadmap",
+    "estimated_delivery": "Q4 2026",
+    "competitor_has": "COMP001",
+    "upgrade_path_product": "P003"
+  }
+]

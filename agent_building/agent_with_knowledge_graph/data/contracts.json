@@ -1,0 +1,35 @@
+[
+  {
+    "contract_id": "CT001",
+    "customer_id": "C001",
+    "products": [
+      "P001",
+      "P002"
+    ],
+    "annual_value": 130000,
+    "status": "Active",
+    "renewal_days": 45
+  },
+  {
+    "contract_id": "CT002",
+    "customer_id": "C002",
+    "products": [
+      "P001"
+    ],
+    "annual_value": 50000,
+    "status": "Active",
+    "renewal_days": 204
+  },
+  {
+    "contract_id": "CT003",
+    "customer_id": "C003",
+    "products": [
+      "P002",
+      "P003",
+      "P004"
+    ],
+    "annual_value": 400000,
+    "status": "Active",
+    "renewal_days": 73
+  }
+]

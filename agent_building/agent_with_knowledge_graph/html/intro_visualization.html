@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Customer 360 Knowledge Graph Agents</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #050510;
+    font-family: 'Courier New', Courier, monospace;
+    color: #00ffcc;
+    height: 100vh;
+    overflow: hidden;
+    position: relative;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,255,204,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,204,0.04) 1px, transparent 1px);
+    background-size: 38px 38px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 2px,
+      rgba(0,0,0,0.18) 2px, rgba(0,0,0,0.18) 4px
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap {
+    position: relative;
+    z-index: 1;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 14px 20px;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    gap: 10px;
+  }
+
+  /* ── Header ── */
+  .header { text-align: center; }
+
+  .title {
+    font-size: 22px;
+    font-weight: bold;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    color: #00ffcc;
+    text-shadow: 0 0 12px #00ffcc, 0 0 28px rgba(0,255,204,0.45);
+    animation: glow 3s ease-in-out infinite;
+  }
+
+  .sub {
+    font-size: 10px;
+    letter-spacing: 5px;
+    color: #ff00aa;
+    margin-top: 4px;
+    text-shadow: 0 0 8px #ff00aa;
+  }
+
+  /* ── Query box ── */
+  .query-wrap {
+    margin: 0 auto;
+    max-width: 780px;
+    border: 1px solid #ffcc00;
+    padding: 8px 18px;
+    background: rgba(255,204,0,0.04);
+    box-shadow: 0 0 18px rgba(255,204,0,0.25);
+    text-align: center;
+    animation: qpulse 2.5s ease-in-out infinite;
+  }
+  .q-label { font-size: 9px; letter-spacing: 3px; color: #ffcc00; margin-bottom: 4px; }
+  .q-text  { font-size: 13px; color: #fff; font-style: italic; }
+
+  /* ── Panels ── */
+  .panels {
+    display: grid;
+    grid-template-columns: 1fr 52px 1fr;
+    gap: 0;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .panel {
+    border: 1px solid;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow: hidden;
+  }
+
+  .panel.flat { border-color: rgba(102,102,255,0.45); background: rgba(30,30,80,0.08); }
+  .panel.kg   { border-color: rgba(0,255,204,0.45);   background: rgba(0,255,204,0.03); }
+
+  .ptitle {
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 3px;
+    text-align: center;
+    padding-bottom: 6px;
+    border-bottom: 1px solid;
+  }
+  .flat .ptitle { color: #6666ff; border-color: #6666ff; text-shadow: 0 0 8px #6666ff; }
+  .kg   .ptitle { color: #00ffcc; border-color: #00ffcc; text-shadow: 0 0 8px #00ffcc; }
+
+  /* Silo grid */
+  .silos {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .silo {
+    border: 1px solid rgba(102,102,255,0.35);
+    padding: 6px 8px;
+    text-align: center;
+    background: rgba(40,40,120,0.12);
+    font-size: 10px;
+    color: #9999cc;
+    position: relative;
+  }
+  .silo-icon { font-size: 15px; display: block; margin-bottom: 2px; }
+  .no-conn {
+    text-align: center;
+    color: rgba(102,102,255,0.45);
+    font-size: 9px;
+    font-style: italic;
+    border: 1px dashed rgba(102,102,255,0.25);
+    padding: 4px;
+  }
+
+  /* Response */
+  .resp {
+    border: 1px solid;
+    padding: 8px 10px;
+    font-size: 10px;
+    line-height: 1.65;
+    flex: 1;
+  }
+  .flat .resp { border-color: rgba(102,102,255,0.35); background: rgba(30,30,100,0.06); color: #9999cc; }
+  .kg   .resp { border-color: rgba(0,255,204,0.35);   background: rgba(0,255,204,0.04); color: #ccffee; }
+
+  .rlabel { font-size: 8px; letter-spacing: 2px; opacity: 0.65; margin-bottom: 5px; }
+
+  .tag {
+    display: inline-block;
+    padding: 1px 7px;
+    font-size: 8px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    margin-bottom: 5px;
+  }
+  .tag-low  { color: #6666ff; border: 1px solid #6666ff; background: rgba(102,102,255,0.1); }
+  .tag-high { color: #ff3344; border: 1px solid #ff3344; background: rgba(255,50,68,0.12); }
+
+  /* Hops */
+  .hops { display: flex; flex-direction: column; gap: 4px; }
+
+  .hop {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 9px;
+    opacity: 0;
+    animation: slidein 0.45s ease forwards;
+  }
+  .hop:nth-child(1) { animation-delay: 0.4s; }
+  .hop:nth-child(2) { animation-delay: 1.0s; }
+  .hop:nth-child(3) { animation-delay: 1.6s; }
+  .hop:nth-child(4) { animation-delay: 2.2s; }
+  .hop:nth-child(5) { animation-delay: 2.8s; }
+
+  .hnum {
+    background: rgba(0,255,204,0.12);
+    border: 1px solid #00ffcc;
+    color: #00ffcc;
+    font-size: 8px;
+    padding: 1px 5px;
+    min-width: 40px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .arr  { color: #00ffcc; opacity: 0.55; flex-shrink: 0; }
+  .hnode {
+    color: #eee;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.18);
+    padding: 1px 6px;
+    white-space: nowrap;
+  }
+  .disc { color: #ffcc00; font-style: italic; font-size: 8.5px; margin-left: 2px; }
+
+  /* VS divider */
+  .vs {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    color: #ff00aa;
+    font-size: 16px;
+    font-weight: bold;
+    text-shadow: 0 0 12px #ff00aa;
+  }
+
+  /* Stats */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .stat {
+    text-align: center;
+    border: 1px solid rgba(0,255,204,0.2);
+    padding: 7px 4px;
+    background: rgba(0,255,204,0.02);
+  }
+  .sv { font-size: 17px; font-weight: bold; color: #00ffcc; text-shadow: 0 0 8px #00ffcc; }
+  .sl { font-size: 8px; color: rgba(0,255,204,0.55); letter-spacing: 2px; margin-top: 2px; }
+
+  /* KG SVG mini-graph */
+  .kg-svg { width: 100%; height: 90px; }
+
+  @keyframes glow {
+    0%,100% { text-shadow: 0 0 12px #00ffcc, 0 0 24px rgba(0,255,204,0.4); }
+    50%      { text-shadow: 0 0 22px #00ffcc, 0 0 45px rgba(0,255,204,0.7), 0 0 70px rgba(0,255,204,0.25); }
+  }
+  @keyframes qpulse {
+    0%,100% { box-shadow: 0 0 14px rgba(255,204,0,0.25); }
+    50%      { box-shadow: 0 0 28px rgba(255,204,0,0.55); }
+  }
+  @keyframes slidein {
+    from { opacity:0; transform: translateX(-12px); }
+    to   { opacity:1; transform: translateX(0); }
+  }
+  @keyframes edgeAnim {
+    0%   { stroke-dashoffset: 100; opacity: 0; }
+    100% { stroke-dashoffset: 0;   opacity: 0.8; }
+  }
+
+  .kg-edge {
+    stroke: #00ffcc;
+    stroke-width: 1.5;
+    fill: none;
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    opacity: 0;
+    animation: edgeAnim 0.6s ease forwards;
+    marker-end: url(#arr);
+  }
+  .e1 { animation-delay: 0.5s; }
+  .e2 { animation-delay: 1.1s; }
+  .e3 { animation-delay: 1.7s; }
+  .e4 { animation-delay: 2.3s; }
+  .e5 { animation-delay: 2.9s; }
+  .e6 { animation-delay: 3.5s; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <div class="title">⟦ Customer 360 Intelligence ⟧</div>
+    <div class="sub">Knowledge Graph Agents &nbsp;·&nbsp; Multi-hop Reasoning &nbsp;·&nbsp; LangGraph</div>
+  </div>
+
+  <div class="query-wrap">
+    <div class="q-label">▸ SALES AGENT QUERY</div>
+    <div class="q-text">"Is Acme Corp at risk of churning? What should I prioritize for tomorrow's renewal call?"</div>
+  </div>
+
+  <div class="panels">
+
+    <!-- ── Flat Data Agent ── -->
+    <div class="panel flat">
+      <div class="ptitle">▸ FLAT DATA AGENT</div>
+
+      <div class="silos">
+        <div class="silo"><span class="silo-icon">🗄️</span>CRM DB</div>
+        <div class="silo"><span class="silo-icon">🎫</span>Tickets DB</div>
+        <div class="silo"><span class="silo-icon">📋</span>Contracts DB</div>
+        <div class="silo"><span class="silo-icon">📦</span>Products DB</div>
+      </div>
+
+      <div class="no-conn">⚠ Data sources are isolated — no cross-references</div>
+
+      <div class="resp">
+        <div class="rlabel">▸ AGENT RESPONSE</div>
+        <div class="tag tag-low">RISK: UNKNOWN</div><br>
+        • Customer has 3 open support tickets<br>
+        • Contract value: $130K/year, renewal in 45 days<br>
+        • Purchased: Analytics Basic + CRM Suite<br>
+        • Product usage data available<br><br>
+        <em style="opacity:0.55">→ Cannot connect tickets to feature gaps, competitor signals, or upgrade paths without manual cross-referencing across 4 separate systems.</em>
+      </div>
+    </div>
+
+    <!-- ── VS ── -->
+    <div class="vs">
+      <span>⚡</span><span style="font-size:13px">VS</span><span>⚡</span>
+    </div>
+
+    <!-- ── KG Agent ── -->
+    <div class="panel kg">
+      <div class="ptitle">⟦ KNOWLEDGE GRAPH AGENT ⟧</div>
+
+      <!-- Mini animated graph -->
+      <svg class="kg-svg" viewBox="0 0 480 90" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" fill="#00ffcc" opacity="0.7"/>
+          </marker>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="2.5" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <!-- Edges (animated) -->
+        <path class="kg-edge e1" d="M65,45 L120,45"/>
+        <path class="kg-edge e2" d="M65,45 L118,22"/>
+        <path class="kg-edge e3" d="M168,45 L225,30"/>
+        <path class="kg-edge e4" d="M168,45 L225,60"/>
+        <path class="kg-edge e5" d="M272,30 L328,45"/>
+        <path class="kg-edge e6" d="M328,45 L385,45"/>
+
+        <!-- Nodes -->
+        <g filter="url(#glow)">
+          <circle cx="45" cy="45" r="14" fill="#0a1a18" stroke="#00ffcc" stroke-width="1.8"/>
+          <text x="45" y="49" text-anchor="middle" fill="#00ffcc" font-size="7" font-family="monospace">Acme</text>
+
+          <circle cx="144" cy="45" r="12" fill="#0a0a1a" stroke="#ff3366" stroke-width="1.5"/>
+          <text x="144" y="49" text-anchor="middle" fill="#ff3366" font-size="6.5" font-family="monospace">Tickets</text>
+
+          <circle cx="144" cy="20" r="10" fill="#0a0a1a" stroke="#0099ff" stroke-width="1.5"/>
+          <text x="144" y="24" text-anchor="middle" fill="#0099ff" font-size="5.5" font-family="monospace">Contract</text>
+
+          <circle cx="248" cy="28" r="12" fill="#0a0a1a" stroke="#cc00ff" stroke-width="1.5"/>
+          <text x="248" y="32" text-anchor="middle" fill="#cc00ff" font-size="6" font-family="monospace">Product</text>
+
+          <circle cx="248" cy="62" r="12" fill="#0a0a1a" stroke="#ffcc00" stroke-width="1.5"/>
+          <text x="248" y="66" text-anchor="middle" fill="#ffcc00" font-size="5.5" font-family="monospace">Feature</text>
+
+          <circle cx="348" cy="45" r="12" fill="#0a0a1a" stroke="#ff6600" stroke-width="1.5"/>
+          <text x="348" y="49" text-anchor="middle" fill="#ff6600" font-size="5.5" font-family="monospace">Competitor</text>
+
+          <circle cx="410" cy="45" r="11" fill="#0a0a1a" stroke="#cc00ff" stroke-width="1.5"/>
+          <text x="410" y="49" text-anchor="middle" fill="#cc00ff" font-size="5.5" font-family="monospace">Upgrade</text>
+        </g>
+
+        <!-- Edge labels -->
+        <text x="93" y="40" fill="rgba(0,255,204,0.4)" font-size="5.5" font-family="monospace" text-anchor="middle">HAS_TICKET</text>
+        <text x="93" y="26" fill="rgba(0,255,204,0.4)" font-size="5.5" font-family="monospace" text-anchor="middle">CONTRACT</text>
+        <text x="204" y="28" fill="rgba(0,255,204,0.4)" font-size="5.5" font-family="monospace" text-anchor="middle">RELATED</text>
+        <text x="204" y="60" fill="rgba(0,255,204,0.4)" font-size="5.5" font-family="monospace" text-anchor="middle">FEATURE</text>
+        <text x="298" y="42" fill="rgba(0,255,204,0.4)" font-size="5.5" font-family="monospace" text-anchor="middle">COMP_HAS</text>
+        <text x="375" y="40" fill="rgba(0,255,204,0.4)" font-size="5.5" font-family="monospace" text-anchor="middle">UPGRADE</text>
+      </svg>
+
+      <!-- Hop trail -->
+      <div class="hops">
+        <div class="hop">
+          <span class="hnum">HOP 1</span><span class="arr">→</span>
+          <span class="hnode">Acme Corp</span><span class="arr">→</span>
+          <span class="hnode">3 Tickets</span>
+          <span class="disc">all Critical, 10–36 days open</span>
+        </div>
+        <div class="hop">
+          <span class="hnum">HOP 2</span><span class="arr">→</span>
+          <span class="hnode">Analytics Basic</span>
+          <span class="disc">root product — 23% usage (benchmark: 72%)</span>
+        </div>
+        <div class="hop">
+          <span class="hnum">HOP 3</span><span class="arr">→</span>
+          <span class="hnode">FR001: Analytics Dashboard</span>
+          <span class="disc">8 months undelivered, In Roadmap</span>
+        </div>
+        <div class="hop">
+          <span class="hnum">HOP 4</span><span class="arr">→</span>
+          <span class="hnode">DataViz Pro</span>
+          <span class="disc">competitor — already has this feature!</span>
+        </div>
+        <div class="hop">
+          <span class="hnum">HOP 5</span><span class="arr">→</span>
+          <span class="hnode">Analytics Pro</span>
+          <span class="disc">upgrade path solves the gap</span>
+        </div>
+      </div>
+
+      <div class="resp">
+        <div class="rlabel">▸ AGENT RESPONSE</div>
+        <div class="tag tag-high">⚠ RISK: HIGH — CHURN LIKELY</div><br>
+        • 3 critical tickets ALL tied to 1 undelivered feature (8 months)<br>
+        • DataViz Pro already has it — mentioned explicitly in 2 tickets<br>
+        • Analytics Basic usage at 23% vs 72% benchmark<br>
+        • Renewal is in 45 days — window is closing<br><br>
+        <strong style="color:#00ffcc">→ Lead with Analytics Pro upgrade + Q4 roadmap commitment to neutralise competitor threat</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="sv">5</div><div class="sl">GRAPH HOPS</div></div>
+    <div class="stat"><div class="sv">6</div><div class="sl">DATA SOURCES</div></div>
+    <div class="stat"><div class="sv">8 mo</div><div class="sl">UNRESOLVED PAIN</div></div>
+    <div class="stat"><div class="sv">$130K</div><div class="sl">AT-RISK REVENUE</div></div>
+  </div>
+
+</div>
+</body>
+</html>
